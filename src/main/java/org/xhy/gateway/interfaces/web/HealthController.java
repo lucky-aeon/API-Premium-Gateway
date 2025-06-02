@@ -1,4 +1,4 @@
-package org.xhy.gateway.controller;
+package org.xhy.gateway.interfaces.web;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,7 +26,7 @@ public class HealthController {
         Map<String, Object> result = new HashMap<>();
         result.put("status", "UP");
         result.put("timestamp", LocalDateTime.now());
-        result.put("application", "API Premium Gateway");
+        result.put("service", "API Premium Gateway");
         result.put("version", "1.0.0-SNAPSHOT");
         return result;
     }
