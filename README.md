@@ -54,7 +54,7 @@ API-Premium Gateway 扮演着**智能决策者**与**状态收集者**的角色�
 ## 📐 架构概览
 
 
-
+![mermaid-diagram-2025-06-02-170627.png](docs/images/mermaid-diagram-2025-06-02-170627.png)
 
 -----
 
