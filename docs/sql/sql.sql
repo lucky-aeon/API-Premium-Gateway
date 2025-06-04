@@ -70,3 +70,22 @@ CREATE TABLE api_instance_metrics (
 
 -- 添加表级别评论
 COMMENT ON TABLE api_instance_metrics IS '存储 API 实例的实时和历史调用指标，用于 Gateway 的高可用决策和智能调度';
+
+---
+-- Table: api_keys
+-- Description: 独立存储和管理 API Keys 及其生命周期信息。Key 可被项目绑定。
+---
+CREATE TABLE api_keys (
+    id VARCHAR(36) PRIMARY KEY, -- API Key 记录的唯一标识符 (UUID 字符串，由应用层生成)
+    api_key_value VARCHAR(256) NOT NULL UNIQUE COMMENT '实际的 API Key 字符串，必须全局唯一且安全存储',
+    description TEXT COMMENT '对该 API Key 的描述，例如 "为生产环境项目A预留的Key", "测试用途Key"',
+    status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE' COMMENT 'API Key 的状态：ACTIVE (激活), REVOKED (已撤销), EXPIRED (已过期), UNUSED (未使用)',
+    issued_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() COMMENT 'API Key 的颁发时间',
+    expires_at TIMESTAMP WITH TIME ZONE COMMENT 'API Key 的过期时间 (可选)。如果为 NULL，则永不过期',
+    last_used_at TIMESTAMP WITH TIME ZONE COMMENT 'API Key 最后一次被使用的时间，可用于审计和清理过期/不活跃 Key',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() COMMENT '记录创建时间',
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() COMMENT '记录最后更新时间，每次更新时自动修改'
+);
+
+-- 添加表级别评论
+COMMENT ON TABLE api_keys IS '独立管理 API Keys 及其生命周期，Key 可被项目绑定';
