@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.xhy.gateway.domain.apikey.entity.ApiKeyEntity;
 import org.xhy.gateway.domain.apikey.entity.ApiKeyStatus;
 import org.xhy.gateway.domain.apikey.repository.ApiKeyRepository;
+import org.xhy.gateway.infrastructure.exception.ApiKeyException;
+import org.xhy.gateway.infrastructure.exception.EntityNotFoundException;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -56,7 +58,11 @@ public class ApiKeyDomainService {
      * 根据 id 获取 apiKey
      */
     public ApiKeyEntity getById(String id) {
-        return apiKeyRepository.selectById(id);
+        ApiKeyEntity apiKey = apiKeyRepository.selectById(id);
+        if (apiKey == null) {
+            throw new EntityNotFoundException("API Key 不存在，ID: " + id);
+        }
+        return apiKey;
     }
 
     /**
@@ -155,7 +161,7 @@ public class ApiKeyDomainService {
             
             if (attempts > maxAttempts) {
                 logger.error("生成唯一 API Key 值失败，尝试次数超过最大限制: {}", maxAttempts);
-                throw new RuntimeException("无法生成唯一的 API Key");
+                throw ApiKeyException.generationFailed("尝试次数超过最大限制");
             }
             
         } while (!isApiKeyValueUnique(apiKeyValue));
