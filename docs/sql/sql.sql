@@ -36,10 +36,7 @@ CREATE TABLE api_instance_registry (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() COMMENT '记录创建时间',
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() COMMENT '记录最后更新时间，每次更新时自动修改',
 
-    -- 外键约束
-    CONSTRAINT fk_project
-        FOREIGN KEY (project_id)
-        REFERENCES projects(id)
+
 );
 
 -- 添加表级别评论
@@ -61,11 +58,6 @@ CREATE TABLE api_instance_metrics (
     current_gateway_status VARCHAR(32) NOT NULL DEFAULT 'HEALTHY' COMMENT 'Gateway 根据内部逻辑判断的 API 实例状态：HEALTHY, DEGRADED, FAULTY, CIRCUIT_BREAKER_OPEN',
     last_reported_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() COMMENT '最后一次上报数据到该指标记录的时间',
     additional_metrics JSONB DEFAULT '{}'::JSONB COMMENT '额外指标，JSONB 格式 (例如：{"total_prompt_tokens": 12345, "total_completion_tokens": 67890, "total_cost": 0.123})',
-
-    -- 外键约束
-    CONSTRAINT fk_registry_instance
-        FOREIGN KEY (registry_id)
-        REFERENCES api_instance_registry(id)
 );
 
 -- 添加表级别评论
