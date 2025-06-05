@@ -88,13 +88,6 @@ public class ApiInstanceEntity {
         this.status = ApiInstanceStatus.ACTIVE;
     }
 
-    public ApiInstanceEntity(String projectId, String apiIdentifier, ApiType apiType, String businessId) {
-        this();
-        this.projectId = projectId;
-        this.apiIdentifier = apiIdentifier;
-        this.apiType = apiType;
-        this.businessId = businessId;
-    }
 
     // 领域行为方法
 

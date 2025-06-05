@@ -17,7 +17,7 @@ import java.util.List;
  * API Key 控制器
  */
 @RestController
-@RequestMapping("/api/apikeys")
+@RequestMapping("/apikeys")
 public class ApiKeyController {
 
     private static final Logger logger = LoggerFactory.getLogger(ApiKeyController.class);

@@ -115,4 +115,12 @@ public class ProjectDomainService {
         
         logger.debug("项目名称唯一性验证通过: {}", name);
     }
+
+    // 是否存在，不存在抛异常
+    public void validateProjectExists(String projectId) {
+        ProjectEntity project = projectRepository.selectById(projectId);
+        if (project == null) {
+            throw new EntityNotFoundException("项目不存在，ID: " + projectId);
+        }
+    }
 } 
