@@ -1,7 +1,9 @@
 package org.xhy.gateway.domain.metrics.entity;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
+
 /**
- * Gateway状态枚举
+ * Gateway 判断的 API 实例状态枚举
  * 
  * @author xhy
  * @since 1.0.0
@@ -9,25 +11,26 @@ package org.xhy.gateway.domain.metrics.entity;
 public enum GatewayStatus {
     
     /**
-     * 健康状态
+     * 健康状态 - 实例工作正常
      */
     HEALTHY("HEALTHY", "健康"),
     
     /**
-     * 降级状态
+     * 降级状态 - 实例性能下降但仍可用
      */
     DEGRADED("DEGRADED", "降级"),
     
     /**
-     * 故障状态
+     * 故障状态 - 实例出现问题但未被熔断
      */
     FAULTY("FAULTY", "故障"),
     
     /**
-     * 熔断器开启状态
+     * 熔断器打开状态 - 实例被熔断，暂停路由
      */
-    CIRCUIT_BREAKER_OPEN("CIRCUIT_BREAKER_OPEN", "熔断器开启");
+    CIRCUIT_BREAKER_OPEN("CIRCUIT_BREAKER_OPEN", "熔断器打开");
 
+    @EnumValue
     private final String code;
     private final String description;
 
@@ -45,42 +48,21 @@ public enum GatewayStatus {
     }
 
     /**
-     * 根据代码获取枚举值
+     * 根据代码获取枚举
      */
     public static GatewayStatus fromCode(String code) {
-        for (GatewayStatus status : GatewayStatus.values()) {
-            if (status.getCode().equals(code)) {
+        for (GatewayStatus status : values()) {
+            if (status.code.equals(code)) {
                 return status;
             }
         }
-        throw new IllegalArgumentException("Unknown gateway status code: " + code);
+        throw new IllegalArgumentException("未知的网关状态代码: " + code);
     }
 
     /**
-     * 检查是否为健康状态
+     * 判断是否可用于路由
      */
-    public boolean isHealthy() {
-        return this == HEALTHY;
-    }
-
-    /**
-     * 检查是否为降级状态
-     */
-    public boolean isDegraded() {
-        return this == DEGRADED;
-    }
-
-    /**
-     * 检查是否为故障状态
-     */
-    public boolean isFaulty() {
-        return this == FAULTY;
-    }
-
-    /**
-     * 检查熔断器是否开启
-     */
-    public boolean isCircuitBreakerOpen() {
-        return this == CIRCUIT_BREAKER_OPEN;
+    public boolean isAvailableForRouting() {
+        return this == HEALTHY || this == DEGRADED;
     }
 } 
