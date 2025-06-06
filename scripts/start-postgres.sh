@@ -63,6 +63,47 @@ done
 
 echo ""
 echo -e "${GREEN}✅ PostgreSQL 数据库启动成功！${NC}"
+
+# 检查是否需要初始化数据库表
+echo -e "${YELLOW}🔍 检查数据库表...${NC}"
+TABLE_COUNT=$(docker-compose exec -T postgres psql -U gateway_user -d api_gateway -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" | tr -d ' \n')
+
+if [ "$TABLE_COUNT" -eq 0 ]; then
+    echo -e "${YELLOW}📋 未发现数据表，开始初始化数据库...${NC}"
+    initialize_database=true
+elif [ "$TABLE_COUNT" -gt 0 ]; then
+    echo -e "${YELLOW}⚠️  发现 $TABLE_COUNT 个数据表已存在${NC}"
+    echo -e "${RED}🗑️  重新初始化将删除所有现有数据表和数据${NC}"
+    echo ""
+    read -p "是否要删除现有数据表并重新初始化？(y/N): " -n 1 -r
+    echo ""
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}🗑️  正在删除现有数据表...${NC}"
+        docker-compose exec -T postgres psql -U gateway_user -d api_gateway -c "DROP TABLE IF EXISTS api_instance_metrics, api_instance_registry, api_keys, projects CASCADE;" > /dev/null 2>&1
+        echo -e "${GREEN}✅ 现有数据表已删除${NC}"
+        initialize_database=true
+    else
+        echo -e "${YELLOW}⏭️  跳过数据库初始化，保留现有数据表${NC}"
+        initialize_database=false
+    fi
+fi
+
+# 执行数据库初始化
+if [ "$initialize_database" = true ]; then
+    echo -e "${YELLOW}🔧 正在初始化数据库表...${NC}"
+    if docker-compose exec -T postgres psql -U gateway_user -d api_gateway < docs/sql/sql.sql > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ 数据库表初始化成功！${NC}"
+        # 再次检查表数量
+        NEW_TABLE_COUNT=$(docker-compose exec -T postgres psql -U gateway_user -d api_gateway -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" | tr -d ' \n')
+        echo -e "${GREEN}📊 成功创建 $NEW_TABLE_COUNT 个数据表${NC}"
+    else
+        echo -e "${RED}❌ 数据库表初始化失败${NC}"
+        echo -e "${YELLOW}💡 请检查 docs/sql/sql.sql 文件是否存在语法错误${NC}"
+        exit 1
+    fi
+fi
+
 echo ""
 echo -e "${GREEN}📋 数据库连接信息:${NC}"
 echo -e "  🔗 主机: localhost"

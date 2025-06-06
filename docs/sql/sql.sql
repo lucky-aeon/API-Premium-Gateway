@@ -12,8 +12,8 @@ CREATE TABLE projects (
     description TEXT, -- 项目的详细描述
     api_key VARCHAR(256) NOT NULL, -- 用于项目认证的 API Key，必须唯一且安全存储
     status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE', -- 项目状态：ACTIVE (活跃), INACTIVE (非活跃)
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- 记录创建时间
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() -- 记录最后更新时间，每次更新时自动修改
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(), -- 记录创建时间
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW() -- 记录最后更新时间，每次更新时自动修改
 );
 
 -- 添加表级别和列级别评论
@@ -40,8 +40,8 @@ CREATE TABLE api_instance_registry (
     routing_params JSONB DEFAULT '{}'::JSONB, -- 影响 Gateway 调度决策的实例级参数，JSONB 格式
     status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE', -- API 实例的当前状态：ACTIVE (活跃), INACTIVE (非活跃), DEPRECATED (已弃用)
     metadata JSONB DEFAULT '{}'::JSONB, -- 额外扩展信息，JSONB 格式，供 Gateway 内部决策或未来扩展使用
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- 记录创建时间
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() -- 记录最后更新时间，每次更新时自动修改
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(), -- 记录创建时间
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW() -- 记录最后更新时间，每次更新时自动修改
 );
 
 -- 添加表级别和列级别评论
@@ -65,13 +65,13 @@ COMMENT ON COLUMN api_instance_registry.updated_at IS '记录最后更新时间�
 CREATE TABLE api_instance_metrics (
     id VARCHAR(36) PRIMARY KEY, -- 指标记录的唯一标识符 (UUID 字符串，由应用层生成)
     registry_id VARCHAR(36) NOT NULL, -- 关联的 API 业务实例 ID，外键关联 api_instance_registry 表
-    timestamp_window TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT date_trunc('minute', NOW()), -- 指标统计的时间窗口起始点
+    timestamp_window TIMESTAMP NOT NULL DEFAULT date_trunc('minute', NOW()), -- 指标统计的时间窗口起始点
     success_count BIGINT NOT NULL DEFAULT 0, -- 该时间窗口内成功的 API 调用次数
     failure_count BIGINT NOT NULL DEFAULT 0, -- 该时间窗口内失败的 API 调用次数
     total_latency_ms BIGINT NOT NULL DEFAULT 0, -- 该时间窗口内所有 API 调用的总延迟（毫秒）
     concurrency INT NOT NULL DEFAULT 0, -- 该时间窗口内观察到的最大或当前活跃并发连接数
     current_gateway_status VARCHAR(32) NOT NULL DEFAULT 'HEALTHY', -- Gateway 根据内部逻辑判断的 API 实例状态
-    last_reported_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- 最后一次上报数据到该指标记录的时间
+    last_reported_at TIMESTAMP NOT NULL DEFAULT NOW(), -- 最后一次上报数据到该指标记录的时间
     additional_metrics JSONB DEFAULT '{}'::JSONB -- 额外指标，JSONB 格式
 );
 
@@ -97,11 +97,11 @@ CREATE TABLE api_keys (
     api_key_value VARCHAR(256) NOT NULL UNIQUE, -- 实际的 API Key 字符串，必须全局唯一且安全存储
     description TEXT, -- 对该 API Key 的描述
     status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE', -- API Key 的状态
-    issued_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- API Key 的颁发时间
-    expires_at TIMESTAMP WITH TIME ZONE, -- API Key 的过期时间 (可选)
-    last_used_at TIMESTAMP WITH TIME ZONE, -- API Key 最后一次被使用的时间
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- 记录创建时间
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW() -- 记录最后更新时间
+    issued_at TIMESTAMP NOT NULL DEFAULT NOW(), -- API Key 的颁发时间
+    expires_at TIMESTAMP, -- API Key 的过期时间 (可选)
+    last_used_at TIMESTAMP, -- API Key 最后一次被使用的时间
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(), -- 记录创建时间
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW() -- 记录最后更新时间
 );
 
 -- 添加表级别和列级别评论
