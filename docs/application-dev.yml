@@ -1,0 +1,55 @@
+# API Premium Gateway - 开发环境配置示例
+# 将此配置添加到 src/main/resources/application-dev.yml
+#
+# 注意：配置信息已与 Docker 数据库设置同步
+
+spring:
+  # 数据源配置
+  datasource:
+    url: jdbc:postgresql://localhost:5433/api_gateway
+    username: gateway_user
+    password: gateway_pass
+    driver-class-name: org.postgresql.Driver
+
+    # 连接池配置 (HikariCP)
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # JPA 配置
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate # 生产环境建议使用 validate
+    show-sql: false # 开发时可以设为 true
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  # SQL 初始化配置
+  sql:
+    init:
+      mode: never # 因为我们使用 Docker 初始化，这里设为 never
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl # 开发环境可以打开 SQL 日志
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 日志配置
+logging:
+  level:
+    org.xhy.gateway: DEBUG
+    org.springframework.jdbc: DEBUG
+    com.zaxxer.hikari: DEBUG

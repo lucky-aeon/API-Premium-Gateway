@@ -10,12 +10,12 @@ spring:
   application:
     name: api-premium-gateway
 
-  # 数据库配置
+  # 数据库配置 - 连接到 Docker PostgreSQL
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/api_premium_gateway?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: postgres
-    password: 123456
+    url: jdbc:postgresql://localhost:5433/api_gateway?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: gateway_user
+    password: gateway_pass
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
       initial-size: 5

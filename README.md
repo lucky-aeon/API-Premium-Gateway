@@ -78,9 +78,29 @@ git clone https://github.com/your-org/api-premium-gateway.git
 cd api-premium-gateway
 ```
 
-### 2\. 配置数据库
+### 2\. 启动数据库
 
-创建您的 MySQL/PostgreSQL 数据库，并更新 `application.yml` 或 `application.properties` 中的数据库连接信息。
+本项目提供了 Docker 一键启动 PostgreSQL 数据库的解决方案：
+
+```bash
+# 一键启动数据库（推荐）
+./start-db.sh
+
+# 或者使用详细脚本
+./scripts/start-postgres.sh
+
+# 停止数据库
+./stop-db.sh
+```
+
+**数据库连接信息：**
+- 主机: `localhost:5433`
+- 数据库: `api_gateway`
+- 用户名: `gateway_user`
+- 密码: `gateway_pass`
+- JDBC URL: `jdbc:postgresql://localhost:5433/api_gateway`
+
+数据库表结构会自动初始化。更多详细信息请查看：[数据库设置指南](docs/DATABASE_SETUP.md)
 
 ### 3\. 构建与运行 Gateway
 
