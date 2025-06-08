@@ -1,7 +1,8 @@
 package org.xhy.gateway.domain.apiinstance.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import org.apache.ibatis.type.JdbcType;
+import org.xhy.gateway.infrastructure.typehandler.PostgreSQLJsonbTypeHandler;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -56,7 +57,7 @@ public class ApiInstanceEntity {
      * 影响 Gateway 调度决策的实例级参数，JSONB 格式
      * 例如：{"priority": 100, "cost_per_unit": 0.0001, "initial_weight": 50}
      */
-    @TableField(value = "routing_params", typeHandler = JacksonTypeHandler.class)
+    @TableField(value = "routing_params", typeHandler = PostgreSQLJsonbTypeHandler.class, jdbcType = JdbcType.OTHER)
     private Map<String, Object> routingParams;
 
     /**
@@ -68,7 +69,7 @@ public class ApiInstanceEntity {
     /**
      * 额外扩展信息，JSONB 格式，供 Gateway 内部决策或未来扩展使用
      */
-    @TableField(value = "metadata", typeHandler = JacksonTypeHandler.class)
+    @TableField(value = "metadata", typeHandler = PostgreSQLJsonbTypeHandler.class, jdbcType = JdbcType.OTHER)
     private Map<String, Object> metadata;
 
     /**

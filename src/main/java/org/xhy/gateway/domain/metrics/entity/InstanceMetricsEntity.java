@@ -2,6 +2,7 @@ package org.xhy.gateway.domain.metrics.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import org.apache.ibatis.type.JdbcType;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -73,7 +74,7 @@ public class InstanceMetricsEntity {
     /**
      * 额外指标，JSONB 格式
      */
-    @TableField(value = "additional_metrics", typeHandler = JacksonTypeHandler.class)
+    @TableField(value = "additional_metrics", typeHandler = JacksonTypeHandler.class, jdbcType = JdbcType.OTHER)
     private Map<String, Object> additionalMetrics;
 
     // 构造函数

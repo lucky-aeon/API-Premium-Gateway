@@ -1,5 +1,7 @@
 package org.xhy.gateway.domain.apiinstance.command;
 
+import org.xhy.gateway.domain.apiinstance.entity.LoadBalancingType;
+
 /**
  * 实例选择命令
  * 封装API实例选择算法的输入参数
@@ -29,11 +31,21 @@ public class InstanceSelectionCommand {
      */
     private final String apiType;
 
+    /**
+     * 负载均衡策略
+     */
+    private final LoadBalancingType loadBalancingType;
+
     public InstanceSelectionCommand(String projectId, String userId, String apiIdentifier, String apiType) {
+        this(projectId, userId, apiIdentifier, apiType, LoadBalancingType.SMART);
+    }
+
+    public InstanceSelectionCommand(String projectId, String userId, String apiIdentifier, String apiType, LoadBalancingType loadBalancingType) {
         this.projectId = projectId;
         this.userId = userId;
         this.apiIdentifier = apiIdentifier;
         this.apiType = apiType;
+        this.loadBalancingType = loadBalancingType != null ? loadBalancingType : LoadBalancingType.SMART;
     }
 
     public String getProjectId() {
@@ -52,6 +64,10 @@ public class InstanceSelectionCommand {
         return apiType;
     }
 
+    public LoadBalancingType getLoadBalancingType() {
+        return loadBalancingType;
+    }
+
     @Override
     public String toString() {
         return "InstanceSelectionCommand{" +
@@ -59,6 +75,7 @@ public class InstanceSelectionCommand {
                 ", userId='" + userId + '\'' +
                 ", apiIdentifier='" + apiIdentifier + '\'' +
                 ", apiType='" + apiType + '\'' +
+                ", loadBalancingType=" + loadBalancingType +
                 '}';
     }
 } 

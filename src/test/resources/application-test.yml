@@ -1,0 +1,60 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: api-premium-gateway-test
+
+  # 测试数据库配置 - 连接到 Docker PostgreSQL（测试库）
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5433/api_gateway?useUnicode=true&characterEncoding=UTF-8&useSSL=false&stringtype=unspecified
+    username: gateway_user
+    password: gateway_pass
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      initial-size: 1
+      min-idle: 1
+      max-active: 5
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+
+  # Jackson配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: NON_NULL
+
+# MyBatis Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 支持 PostgreSQL JSONB 类型
+    jdbc-type-for-null: NULL
+    # 时区处理配置
+    default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
+    local-cache-scope: SESSION
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      insert-strategy: NOT_NULL
+      update-strategy: NOT_NULL
+  # 类型处理器配置
+  type-handlers-package: org.xhy.gateway.infrastructure.typehandler
+
+# 日志配置 - 测试环境更详细的日志
+logging:
+  level:
+    org.xhy.gateway: DEBUG
+    com.baomidou.mybatisplus: DEBUG
+    org.springframework.transaction: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

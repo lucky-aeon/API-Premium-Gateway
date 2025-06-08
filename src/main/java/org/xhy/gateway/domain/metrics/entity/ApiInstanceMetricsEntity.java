@@ -2,7 +2,9 @@ package org.xhy.gateway.domain.metrics.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import org.apache.ibatis.type.JdbcType;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -74,7 +76,7 @@ public class ApiInstanceMetricsEntity {
      * 额外指标，JSONB 格式
      * 例如：{"total_prompt_tokens": 12345, "total_completion_tokens": 67890, "total_cost": 0.123}
      */
-    @TableField(value = "additional_metrics", typeHandler = JacksonTypeHandler.class)
+    @TableField(value = "additional_metrics", typeHandler = JacksonTypeHandler.class, jdbcType = JdbcType.OTHER)
     private Map<String, Object> additionalMetrics;
 
     // 构造函数
