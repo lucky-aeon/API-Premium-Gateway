@@ -52,7 +52,7 @@
 mvn spring-boot:run
 
 # 访问管理后台
-http://localhost:8080/api/
+http://localhost:8081/api/
 ```
 
 ### 生产环境
