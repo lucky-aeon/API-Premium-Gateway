@@ -1,4 +1,4 @@
-package org.xhy.gateway.interfaces.api.controller;
+package org.xhy.gateway.interfaces.api.controller.external;
 
 import jakarta.validation.Valid;
 import org.slf4j.Logger;

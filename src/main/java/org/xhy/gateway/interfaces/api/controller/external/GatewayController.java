@@ -1,4 +1,4 @@
-package org.xhy.gateway.interfaces.api.controller;
+package org.xhy.gateway.interfaces.api.controller.external;
 
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -10,27 +10,28 @@ import org.xhy.gateway.interfaces.api.request.ReportResultRequest;
 import org.xhy.gateway.interfaces.api.request.SelectInstanceRequest;
 
 /**
- * API实例选择控制器
- * 提供核心的智能调度功能
+ * Gateway 对外暴露的API控制器
+ * 提供核心的实例选择和状态上报功能
  * 
  * @author xhy
  * @since 1.0.0
  */
 @RestController
-@RequestMapping("/selection")
-public class SelectionController {
+@RequestMapping("/gateway")
+public class GatewayController {
 
-    private static final Logger logger = LoggerFactory.getLogger(SelectionController.class);
+    private static final Logger logger = LoggerFactory.getLogger(GatewayController.class);
 
     private final SelectionAppService selectionAppService;
 
-    public SelectionController(SelectionAppService selectionAppService) {
+    public GatewayController(SelectionAppService selectionAppService) {
         this.selectionAppService = selectionAppService;
     }
 
     /**
      * 选择最佳API实例
      * 根据调度算法返回最优的businessId
+     * 需要API Key校验
      */
     @PostMapping("/select-instance")
     public Result<String> selectInstance(@Valid @RequestBody SelectInstanceRequest request) {
@@ -45,6 +46,7 @@ public class SelectionController {
     /**
      * 上报API调用结果
      * 用于更新实例指标和健康状态
+     * 需要API Key校验
      */
     @PostMapping("/report-result")
     public Result<Void> reportResult(@Valid @RequestBody ReportResultRequest request) {

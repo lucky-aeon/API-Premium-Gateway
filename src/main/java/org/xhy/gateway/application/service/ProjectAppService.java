@@ -81,4 +81,71 @@ public class ProjectAppService {
         // 转换为DTO列表返回
         return projectAssembler.toDTOList(projectEntities);
     }
+
+    /**
+     * 获取所有项目（管理后台用）
+     * 只读操作，不需要事务
+     */
+    public List<ProjectDTO> getAllProjects() {
+        logger.debug("应用层获取所有项目列表（管理后台）");
+
+        // 调用领域服务获取所有项目
+        List<ProjectEntity> projectEntities = projectDomainService.getAllProjects();
+
+        // 转换为DTO列表返回
+        return projectAssembler.toDTOList(projectEntities);
+    }
+
+    /**
+     * 根据项目名称搜索项目
+     * 只读操作，不需要事务
+     */
+    public List<ProjectDTO> searchProjectsByName(String projectName) {
+        logger.debug("应用层按名称搜索项目，项目名称: {}", projectName);
+
+        // 调用领域服务搜索项目
+        List<ProjectEntity> projectEntities = projectDomainService.searchProjectsByName(projectName);
+
+        // 转换为DTO列表返回
+        return projectAssembler.toDTOList(projectEntities);
+    }
+
+    /**
+     * 根据状态获取项目列表
+     * 只读操作，不需要事务
+     */
+    public List<ProjectDTO> getProjectsByStatus(String status) {
+        logger.debug("应用层按状态查询项目，状态: {}", status);
+
+        // 调用领域服务获取项目
+        List<ProjectEntity> projectEntities = projectDomainService.getProjectsByStatus(status);
+
+        // 转换为DTO列表返回
+        return projectAssembler.toDTOList(projectEntities);
+    }
+
+    /**
+     * 删除项目（管理员权限）
+     * 需要事务支持，会级联删除相关数据
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteProject(String projectId) {
+        logger.warn("应用层删除项目，项目ID: {}", projectId);
+
+        // 调用领域服务删除项目（会级联删除相关的实例和指标数据）
+        projectDomainService.deleteProject(projectId);
+
+        logger.warn("应用层项目删除完成，项目ID: {}", projectId);
+    }
+
+    /**
+     * 获取项目统计信息
+     * 只读操作，不需要事务
+     */
+    public Object getProjectStatistics() {
+        logger.debug("应用层获取项目统计信息");
+
+        // TODO: 调用领域服务获取统计信息
+        return projectDomainService.getProjectStatistics();
+    }
 } 

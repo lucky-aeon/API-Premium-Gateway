@@ -1,4 +1,4 @@
-package org.xhy.gateway.interfaces.api.controller;
+package org.xhy.gateway.interfaces.api.controller.admin;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,17 +14,22 @@ import org.xhy.gateway.interfaces.api.request.api_key.ApiKeyUpdateRequest;
 import java.util.List;
 
 /**
- * API Key 控制器
+ * API Key 管理控制器 - 内部管理接口
+ * 提供API Key的生成、查询、更新、删除功能
+ * 不需要API Key校验
+ * 
+ * @author xhy
+ * @since 1.0.0
  */
 @RestController
-@RequestMapping("/apikeys")
-public class ApiKeyController {
+@RequestMapping("/admin/apikeys")
+public class AdminApiKeyController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ApiKeyController.class);
+    private static final Logger logger = LoggerFactory.getLogger(AdminApiKeyController.class);
 
     private final ApiKeyAppService apiKeyAppService;
 
-    public ApiKeyController(ApiKeyAppService apiKeyAppService) {
+    public AdminApiKeyController(ApiKeyAppService apiKeyAppService) {
         this.apiKeyAppService = apiKeyAppService;
     }
 

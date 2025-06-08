@@ -123,4 +123,103 @@ public class ProjectDomainService {
             throw new EntityNotFoundException("项目不存在，ID: " + projectId);
         }
     }
+
+    /**
+     * 检查项目是否存在且处于活跃状态
+     * 
+     * @param projectId 项目ID
+     * @return 如果项目存在且活跃返回true，否则返回false
+     */
+    public boolean isProjectActive(String projectId) {
+        if (projectId == null || projectId.trim().isEmpty()) {
+            return false;
+        }
+        
+        ProjectEntity project = projectRepository.selectById(projectId);
+        if (project == null) {
+            logger.debug("项目不存在: {}", projectId);
+            return false;
+        }
+        
+        boolean isActive = project.isActive();
+        if (!isActive) {
+            logger.debug("项目不是活跃状态: {}, 状态: {}", projectId, project.getStatus());
+        }
+        
+        return isActive;
+    }
+
+    /**
+     * 获取所有项目（管理后台用）
+     */
+    public List<ProjectEntity> getAllProjects() {
+        logger.debug("获取所有项目列表（管理后台）");
+        
+        LambdaQueryWrapper<ProjectEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.orderByDesc(ProjectEntity::getCreatedAt);
+        
+        return projectRepository.selectList(queryWrapper);
+    }
+
+    /**
+     * 根据项目名称搜索项目
+     */
+    public List<ProjectEntity> searchProjectsByName(String projectName) {
+        logger.debug("按名称搜索项目，项目名称: {}", projectName);
+        
+        LambdaQueryWrapper<ProjectEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.like(ProjectEntity::getName, projectName)
+                   .orderByDesc(ProjectEntity::getCreatedAt);
+        
+        return projectRepository.selectList(queryWrapper);
+    }
+
+    /**
+     * 根据状态获取项目列表
+     */
+    public List<ProjectEntity> getProjectsByStatus(String status) {
+        logger.debug("按状态查询项目，状态: {}", status);
+        
+        LambdaQueryWrapper<ProjectEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ProjectEntity::getStatus, status)
+                   .orderByDesc(ProjectEntity::getCreatedAt);
+        
+        return projectRepository.selectList(queryWrapper);
+    }
+
+    /**
+     * 删除项目（管理员权限）
+     * 会级联删除相关的API实例和指标数据
+     */
+    public void deleteProject(String projectId) {
+        logger.warn("删除项目，项目ID: {}", projectId);
+        
+        // 先验证项目是否存在
+        validateProjectExists(projectId);
+        
+        // TODO: 在实际实现中，这里应该级联删除：
+        // 1. 删除项目下的所有API实例
+        // 2. 删除相关的指标数据
+        // 3. 删除项目记录
+        
+        // 目前只删除项目记录
+        int deleted = projectRepository.deleteById(projectId);
+        if (deleted > 0) {
+            logger.warn("项目删除成功，项目ID: {}", projectId);
+        } else {
+            throw new BusinessException("PROJECT_DELETE_FAILED", "项目删除失败，项目ID: " + projectId);
+        }
+    }
+
+    /**
+     * 获取项目统计信息
+     */
+    public Object getProjectStatistics() {
+        logger.debug("获取项目统计信息");
+        
+        // TODO: 实现项目统计信息获取
+        // 可以包括：总项目数、活跃项目数、各状态项目分布等
+        
+        return null;
+    }
 } 
