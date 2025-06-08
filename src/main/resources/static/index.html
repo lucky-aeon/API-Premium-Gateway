@@ -136,6 +136,231 @@
             color: #d97706;
             border: 1px solid #fed7aa;
         }
+        
+        /* 监控仪表盘样式 */
+        .monitoring-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .time-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #333;
+        }
+        
+        .chart-box {
+            width: 100%;
+            height: 300px;
+        }
+        
+        .alert-section {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .alert-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #e74c3c;
+        }
+        
+        .alert-item {
+            display: inline-block;
+            margin: 4px 8px 4px 0;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .alert-critical {
+            background: #fee;
+            color: #c53030;
+            border: 1px solid #fc8181;
+        }
+        
+        .alert-warning {
+            background: #fffaf0;
+            color: #d69e2e;
+            border: 1px solid #f6ad55;
+        }
+        
+        .instances-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .instance-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #e0e0e0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .instance-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .instance-card.healthy {
+            border-left-color: #4caf50;
+        }
+        
+        .instance-card.warning {
+            border-left-color: #ff9800;
+        }
+        
+        .instance-card.critical {
+            border-left-color: #f44336;
+        }
+        
+        .instance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .instance-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .instance-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-healthy {
+            background-color: #4caf50;
+        }
+        
+        .status-warning {
+            background-color: #ff9800;
+        }
+        
+        .status-critical {
+            background-color: #f44336;
+        }
+        
+        .instance-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .metric-item {
+            font-size: 12px;
+        }
+        
+        .metric-label {
+            color: #666;
+            display: block;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .metric-value.success {
+            color: #4caf50;
+        }
+        
+        .metric-value.warning {
+            color: #ff9800;
+        }
+        
+        .metric-value.critical {
+            color: #f44336;
+        }
+        
+        .instance-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .action-btn.primary {
+            background: #409eff;
+            color: white;
+        }
+        
+        .action-btn.primary:hover {
+            background: #337ab7;
+        }
+        
+        .auto-refresh-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .refresh-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        
+        .refresh-dot.paused {
+            background: #ccc;
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -151,7 +376,7 @@
                     <el-dropdown>
                         <span class="el-dropdown-link">
                             管理员
-                            <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
                         </span>
                         <template #dropdown>
                             <el-dropdown-menu>
@@ -198,7 +423,7 @@
                 <!-- 主内容区 -->
                 <el-main class="main">
                     <!-- 仪表盘 -->
-                    <div v-if="activeMenu === 'dashboard'">
+                    <div v-if="activeMenu === 'dashboard'" :key="'dashboard-' + activeMenu">
                         <div class="page-header">
                             <h2>仪表盘</h2>
                             <p>系统整体运行状况概览</p>
@@ -221,7 +446,7 @@
                     </div>
                     
                     <!-- 项目管理 -->
-                    <div v-if="activeMenu === 'projects'">
+                    <div v-if="activeMenu === 'projects'" :key="'projects-' + activeMenu">
                         <div class="page-header">
                             <h2>项目管理</h2>
                             <p>管理所有API项目</p>
@@ -280,7 +505,7 @@
                     </div>
                     
                     <!-- API Key管理 -->
-                    <div v-if="activeMenu === 'apikeys'">
+                    <div v-if="activeMenu === 'apikeys'" :key="'apikeys-' + activeMenu">
                         <div class="page-header">
                             <h2>API Key管理</h2>
                             <p>管理系统中的所有API Key</p>
@@ -344,7 +569,7 @@
                     </div>
                     
                     <!-- API实例管理 -->
-                    <div v-if="activeMenu === 'instances'">
+                    <div v-if="activeMenu === 'instances'" :key="'instances-' + activeMenu">
                         <div class="page-header">
                             <h2>API实例管理</h2>
                             <p>查看和管理所有API实例</p>
@@ -403,37 +628,39 @@
                     </div>
 
                     <!-- 实例监控 -->
-                    <div v-if="activeMenu === 'monitoring'">
+                    <div v-if="activeMenu === 'monitoring'" :key="'monitoring-' + activeMenu">
                         <div class="page-header">
                             <h2>API实例监控</h2>
                             <p>实时监控项目下API实例的调用情况和健康状态</p>
                         </div>
                         
-                        <!-- 筛选区域 -->
-                        <div class="content-card" style="margin-bottom: 20px;">
-                            <div class="table-toolbar">
-                                <div>
-                                    <el-select v-model="monitoringFilter.projectId" placeholder="选择项目" clearable style="width: 180px; margin-right: 10px;" @change="loadMonitoringData">
-                                        <el-option v-for="project in projectList" :key="project.id" 
-                                                 :label="project.name" :value="project.id"></el-option>
-                                    </el-select>
-                                    <el-select v-model="monitoringFilter.status" placeholder="实例状态" clearable style="width: 120px; margin-right: 10px;" @change="loadMonitoringData">
-                                        <el-option label="活跃" value="ACTIVE"></el-option>
-                                        <el-option label="非活跃" value="INACTIVE"></el-option>
-                                        <el-option label="已弃用" value="DEPRECATED"></el-option>
-                                    </el-select>
-                                    <el-select v-model="monitoringFilter.gatewayStatus" placeholder="网关状态" clearable style="width: 120px; margin-right: 10px;" @change="loadMonitoringData">
-                                        <el-option label="健康" value="HEALTHY"></el-option>
-                                        <el-option label="降级" value="DEGRADED"></el-option>
-                                        <el-option label="熔断" value="CIRCUIT_BREAKER_OPEN"></el-option>
-                                    </el-select>
+                        <!-- 监控控制台头部 -->
+                        <div class="monitoring-header">
+                            <div class="time-controls">
+                                <span style="font-weight: 500;">时间范围:</span>
+                                <el-select v-model="monitoringTimeRange" @change="loadMonitoringData" style="width: 120px;">
+                                    <el-option label="最近1小时" value="1h"></el-option>
+                                    <el-option label="最近6小时" value="6h"></el-option>
+                                    <el-option label="最近24小时" value="24h"></el-option>
+                                    <el-option label="最近7天" value="7d"></el-option>
+                                </el-select>
+                                <el-select v-model="monitoringFilter.projectId" placeholder="选择项目" clearable style="width: 160px;" @change="loadMonitoringData">
+                                    <el-option v-for="project in projectList" :key="project.id" 
+                                             :label="project.name" :value="project.id"></el-option>
+                                </el-select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div class="auto-refresh-indicator">
+                                    <span class="refresh-dot" :class="{ paused: autoRefreshPaused }"></span>
+                                    <span>{{ autoRefreshPaused ? '已暂停' : '自动刷新' }}</span>
                                 </div>
-                                <div>
-                                    <el-button type="primary" @click="refreshMonitoringData" :loading="monitoringLoading">
-                                        <el-icon><Refresh /></el-icon>
-                                        刷新数据
-                                    </el-button>
-                                </div>
+                                <el-button @click="toggleAutoRefresh" type="text">
+                                    {{ autoRefreshPaused ? '启动' : '暂停' }}
+                                </el-button>
+                                <el-button type="primary" @click="refreshMonitoringData" :loading="monitoringLoading">
+                                    <el-icon><Refresh /></el-icon>
+                                    刷新
+                                </el-button>
                             </div>
                         </div>
                         
@@ -465,63 +692,92 @@
                             </div>
                         </div>
                         
-                        <!-- 实例监控表格 -->
+                        <!-- 趋势图表区域 -->
+                        <div class="chart-container">
+                            <div class="chart-title">调用量趋势</div>
+                            <div class="chart-box" ref="callVolumeChart"></div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="chart-container">
+                                <div class="chart-title">成功率趋势</div>
+                                <div class="chart-box" ref="successRateChart"></div>
+                            </div>
+                            <div class="chart-container">
+                                <div class="chart-title">延迟分布</div>
+                                <div class="chart-box" ref="latencyChart"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- 异常告警区域 -->
+                        <div class="alert-section" v-if="alerts.length > 0">
+                            <div class="alert-title">⚠️ 异常告警</div>
+                            <div>
+                                <span v-for="alert in alerts" :key="alert.id" 
+                                      :class="['alert-item', alert.level === 'critical' ? 'alert-critical' : 'alert-warning']">
+                                    {{ alert.message }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- 实例状态网格 -->
                         <div class="content-card">
-                            <el-table :data="monitoringInstances" style="width: 100%" 
-                                      v-loading="monitoringLoading" stripe>
-                                <el-table-column prop="projectName" label="项目名称" min-width="120"></el-table-column>
-                                <el-table-column prop="businessId" label="业务ID" min-width="150"></el-table-column>
-                                <el-table-column prop="apiIdentifier" label="API标识" min-width="120"></el-table-column>
-                                <el-table-column prop="apiType" label="类型" min-width="100"></el-table-column>
-                                <el-table-column label="实例状态" min-width="100">
-                                    <template #default="scope">
-                                        <el-tag :type="getInstanceStatusType(scope.row.status)">
-                                            {{ scope.row.status }}
-                                        </el-tag>
-                                    </template>
-                                </el-table-column>
-                                <el-table-column label="网关状态" min-width="120">
-                                    <template #default="scope">
-                                        <el-tag :type="getGatewayStatusType(scope.row.gatewayStatus)">
-                                            {{ getGatewayStatusText(scope.row.gatewayStatus) }}
-                                        </el-tag>
-                                    </template>
-                                </el-table-column>
-                                <el-table-column label="成功率" min-width="100">
-                                    <template #default="scope">
-                                        <span :class="getSuccessRateClass(scope.row.successRate)">
-                                            {{ formatPercentage(scope.row.successRate) }}
-                                        </span>
-                                    </template>
-                                </el-table-column>
-                                <el-table-column label="平均延迟" min-width="100">
-                                    <template #default="scope">
-                                        <span :class="getLatencyClass(scope.row.averageLatency)">
-                                            {{ formatLatency(scope.row.averageLatency) }}
-                                        </span>
-                                    </template>
-                                </el-table-column>
-                                <el-table-column label="并发数" min-width="80">
-                                    <template #default="scope">
-                                        {{ scope.row.concurrency || 0 }}
-                                    </template>
-                                </el-table-column>
-                                <el-table-column label="调用次数" min-width="100">
-                                    <template #default="scope">
-                                        {{ scope.row.recentCalls || 0 }}
-                                    </template>
-                                </el-table-column>
-                                <el-table-column label="最后上报" min-width="150">
-                                    <template #default="scope">
-                                        {{ formatDateTime(scope.row.lastReportedAt) }}
-                                    </template>
-                                </el-table-column>
-                                <el-table-column label="操作" min-width="120" fixed="right">
-                                    <template #default="scope">
-                                        <el-button size="small" @click="viewInstanceDetails(scope.row)">详情</el-button>
-                                    </template>
-                                </el-table-column>
-                            </el-table>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">实例状态</h3>
+                                <div>
+                                    <el-select v-model="monitoringFilter.status" placeholder="实例状态" clearable style="width: 120px; margin-right: 10px;" @change="loadMonitoringData">
+                                        <el-option label="活跃" value="ACTIVE"></el-option>
+                                        <el-option label="非活跃" value="INACTIVE"></el-option>
+                                        <el-option label="已弃用" value="DEPRECATED"></el-option>
+                                    </el-select>
+                                    <el-select v-model="monitoringFilter.gatewayStatus" placeholder="网关状态" clearable style="width: 120px;" @change="loadMonitoringData">
+                                        <el-option label="健康" value="HEALTHY"></el-option>
+                                        <el-option label="降级" value="DEGRADED"></el-option>
+                                        <el-option label="熔断" value="CIRCUIT_BREAKER_OPEN"></el-option>
+                                    </el-select>
+                                </div>
+                            </div>
+                            
+                            <div class="instances-grid" v-loading="monitoringLoading">
+                                <div v-for="instance in monitoringInstances" :key="instance.instanceId" 
+                                     :class="['instance-card', getInstanceCardClass(instance)]"
+                                     @click="viewInstanceDetails(instance)">
+                                    <div class="instance-header">
+                                        <span class="instance-name">{{ instance.businessId }}</span>
+                                        <span :class="['instance-status', getInstanceStatusClass(instance)]"></span>
+                                    </div>
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                                        {{ instance.projectName }} • {{ instance.apiType }}
+                                    </div>
+                                    <div class="instance-metrics">
+                                        <div class="metric-item">
+                                            <span class="metric-label">成功率</span>
+                                            <span :class="['metric-value', getSuccessRateValueClass(instance.successRate)]">
+                                                {{ formatPercentage(instance.successRate) }}
+                                            </span>
+                                        </div>
+                                        <div class="metric-item">
+                                            <span class="metric-label">延迟</span>
+                                            <span :class="['metric-value', getLatencyValueClass(instance.averageLatency)]">
+                                                {{ formatLatency(instance.averageLatency) }}
+                                            </span>
+                                        </div>
+                                        <div class="metric-item">
+                                            <span class="metric-label">QPS</span>
+                                            <span class="metric-value">{{ calculateQPS(instance.recentCalls) }}</span>
+                                        </div>
+                                        <div class="metric-item">
+                                            <span class="metric-label">并发</span>
+                                            <span class="metric-value">{{ instance.concurrency || 0 }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="instance-actions">
+                                        <button class="action-btn primary" @click.stop="viewInstanceDetails(instance)">
+                                            详情
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -595,6 +851,8 @@
     <script src="https://unpkg.com/@element-plus/icons-vue/dist/index.iife.min.js"></script>
     <!-- axios -->
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- ECharts -->
+    <script src="https://unpkg.com/echarts@5.4.3/dist/echarts.min.js"></script>
     
     <script src="app.js"></script>
 </body>

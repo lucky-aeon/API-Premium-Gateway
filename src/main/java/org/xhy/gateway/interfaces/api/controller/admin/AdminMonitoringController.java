@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import org.xhy.gateway.application.dto.ApiInstanceMonitoringDTO;
 import org.xhy.gateway.application.dto.MonitoringOverviewDTO;
+import org.xhy.gateway.application.dto.TimeSeriesDTO;
 import org.xhy.gateway.application.service.MonitoringAppService;
 import org.xhy.gateway.domain.apiinstance.entity.ApiInstanceStatus;
 import org.xhy.gateway.domain.metrics.entity.GatewayStatus;
@@ -83,6 +84,26 @@ public class AdminMonitoringController {
         
         logger.info("实例监控列表获取成功，共 {} 个实例", result.size());
         return Result.success("实例监控列表获取成功", result);
+    }
+
+    /**
+     * 获取时间序列数据
+     * 用于监控图表展示
+     */
+    @GetMapping("/timeseries")
+    public Result<TimeSeriesDTO> getTimeSeriesData(
+            @RequestParam String timeRange,
+            @RequestParam(required = false) String projectId) {
+        logger.info("管理后台获取时间序列数据，时间范围: {}，项目ID: {}", timeRange, projectId);
+        
+        try {
+            TimeSeriesDTO result = monitoringAppService.getTimeSeriesData(timeRange, projectId);
+            logger.info("时间序列数据获取成功");
+            return Result.success("时间序列数据获取成功", result);
+        } catch (Exception e) {
+            logger.error("获取时间序列数据失败", e);
+            return Result.error(500, "获取时间序列数据失败: " + e.getMessage());
+        }
     }
 
     /**

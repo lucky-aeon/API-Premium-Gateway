@@ -73,6 +73,22 @@ const app = createApp({
                 projectId: '',
                 status: '',
                 gatewayStatus: ''
+            },
+            monitoringTimeRange: '24h',
+            autoRefreshPaused: false,
+            autoRefreshTimer: null,
+            alerts: [],
+            // 图表实例
+            charts: {
+                callVolume: null,
+                successRate: null,
+                latency: null
+            },
+            // 模拟时间序列数据
+            timeSeriesData: {
+                callVolume: [],
+                successRate: [],
+                latency: []
             }
 
         };
@@ -111,6 +127,12 @@ const app = createApp({
     beforeUnmount() {
         // 清理事件监听器
         window.removeEventListener('hashchange', this.handleHashChange);
+        // 清理自动刷新定时器
+        this.stopAutoRefresh();
+        // 清理图表实例
+        Object.values(this.charts).forEach(chart => {
+            if (chart) chart.dispose();
+        });
     },
     
     methods: {
@@ -132,6 +154,11 @@ const app = createApp({
         
         // 根据当前菜单初始化数据
         initializeMenuData() {
+            console.log('初始化菜单数据:', this.activeMenu);
+            
+            // 停止之前的自动刷新
+            this.stopAutoRefresh();
+            
             switch(this.activeMenu) {
                 case 'dashboard':
                     this.loadDashboardData();
@@ -149,16 +176,46 @@ const app = createApp({
                 case 'monitoring':
                     this.loadProjectList();
                     this.loadMonitoringData();
+                    // 启动监控页面的自动刷新
+                    this.startAutoRefresh();
                     break;
             }
         },
         
         // 菜单选择处理
         handleMenuSelect(key) {
+            console.log('菜单切换到:', key);
+            
+            // 先清空当前数据，避免显示问题
+            this.clearCurrentData();
+            
             this.activeMenu = key;
             // 更新URL hash
             window.location.hash = key;
-            this.initializeMenuData();
+            
+            // 延迟加载数据，确保DOM更新完成
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    this.initializeMenuData();
+                }, 50);
+            });
+        },
+        
+        // 清空当前数据
+        clearCurrentData() {
+            // 清空各个模块的数据
+            this.projects = [];
+            this.apiKeys = [];
+            this.instances = [];
+            this.monitoringInstances = [];
+            this.monitoringStats = {
+                totalInstances: 0,
+                healthyInstances: 0,
+                activeInstances: 0,
+                averageSuccessRate: 0,
+                averageLatency: 0,
+                totalCalls: 0
+            };
         },
         
         // 加载仪表盘数据
@@ -399,6 +456,14 @@ const app = createApp({
         
         // 格式化日期时间为后端期望的格式
         formatDateTime(date) {
+            if (!date) return null;
+            
+            // 如果是字符串，直接返回（适用于显示）
+            if (typeof date === 'string') {
+                return this.formatDisplayDateTime(date);
+            }
+            
+            // 如果是Date对象，格式化为后端期望的格式
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
@@ -563,8 +628,47 @@ const app = createApp({
         async loadMonitoringData() {
             await Promise.all([
                 this.loadMonitoringOverview(),
-                this.loadMonitoringInstances()
+                this.loadMonitoringInstances(),
+                this.loadTimeSeriesData()
             ]);
+            
+            // 延迟初始化图表，确保DOM已渲染
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    this.initCharts();
+                    this.updateAlerts();
+                }, 100);
+            });
+        },
+        
+        // 启动自动刷新
+        startAutoRefresh() {
+            if (this.autoRefreshTimer) {
+                clearInterval(this.autoRefreshTimer);
+            }
+            
+            this.autoRefreshTimer = setInterval(() => {
+                if (!this.autoRefreshPaused && this.activeMenu === 'monitoring') {
+                    console.log('自动刷新监控数据');
+                    this.loadMonitoringData();
+                }
+            }, 60000); // 1分钟刷新
+        },
+        
+        // 停止自动刷新
+        stopAutoRefresh() {
+            if (this.autoRefreshTimer) {
+                clearInterval(this.autoRefreshTimer);
+                this.autoRefreshTimer = null;
+            }
+        },
+        
+        // 切换自动刷新状态
+        toggleAutoRefresh() {
+            this.autoRefreshPaused = !this.autoRefreshPaused;
+            if (!this.autoRefreshPaused && this.activeMenu === 'monitoring') {
+                this.loadMonitoringData();
+            }
         },
         
         // 加载监控概览
@@ -611,17 +715,25 @@ const app = createApp({
                     params.gatewayStatus = this.monitoringFilter.gatewayStatus;
                 }
                 
+                console.log('请求监控实例数据，参数:', params);
                 const response = await axios.get('/admin/monitoring/instances', { params });
+                console.log('监控实例API响应:', response.data);
+                
                 if (response.data.code === 200) {
                     this.monitoringInstances = response.data.data || [];
+                    console.log('监控实例数据加载成功，数量:', this.monitoringInstances.length);
                 } else {
+                    console.error('监控实例API错误:', response.data);
                     this.$message.error(response.data.message || '加载监控实例列表失败');
+                    // 如果API出错，使用模拟数据
+                    this.monitoringInstances = this.getMockMonitoringInstances();
                 }
             } catch (error) {
                 console.error('加载监控实例列表失败:', error);
                 this.$message.error('加载监控实例列表失败');
                 // 使用模拟数据
                 this.monitoringInstances = this.getMockMonitoringInstances();
+                console.log('使用模拟数据，数量:', this.monitoringInstances.length);
             } finally {
                 this.monitoringLoading = false;
             }
@@ -630,6 +742,269 @@ const app = createApp({
         // 刷新监控数据
         async refreshMonitoringData() {
             this.loadMonitoringData();
+        },
+        
+        // 加载时间序列数据
+        async loadTimeSeriesData() {
+            try {
+                console.log('开始加载时间序列数据, timeRange:', this.monitoringTimeRange);
+                
+                // 构建请求参数
+                const params = { timeRange: this.monitoringTimeRange };
+                if (this.monitoringFilter.projectId) {
+                    params.projectId = this.monitoringFilter.projectId;
+                }
+                
+                // 调用后端API获取时间序列数据
+                const response = await axios.get('/admin/monitoring/timeseries', { params });
+                
+                if (response.data && response.data.code === 200 && response.data.data) {
+                    this.timeSeriesData = response.data.data;
+                    console.log('从后端加载时间序列数据成功:', this.timeSeriesData);
+                } else {
+                    console.warn('后端返回数据格式异常，使用模拟数据');
+                    console.log('后端响应:', response.data);
+                    this.timeSeriesData = this.generateMockTimeSeriesData();
+                }
+            } catch (error) {
+                console.error('加载时间序列数据失败:', error);
+                console.log('使用模拟数据作为fallback');
+                this.timeSeriesData = this.generateMockTimeSeriesData();
+            }
+        },
+        
+        // 生成模拟时间序列数据
+        generateMockTimeSeriesData() {
+            const now = new Date();
+            const hours = this.getHoursFromTimeRange(this.monitoringTimeRange);
+            const interval = Math.max(1, Math.floor(hours / 24)); // 最多24个数据点
+            
+            const callVolumeData = [];
+            const successRateData = [];
+            const latencyData = [];
+            
+            for (let i = hours; i >= 0; i -= interval) {
+                const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+                const timeStr = time.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                
+                // 模拟调用量数据（波动）
+                const baseVolume = 100 + Math.sin(i / 4) * 30;
+                const volume = Math.max(0, Math.floor(baseVolume + (Math.random() - 0.5) * 40));
+                
+                // 模拟成功率（偶尔降低）
+                const baseSuccessRate = 98;
+                const successRate = Math.random() < 0.1 ? 
+                    85 + Math.random() * 10 : 
+                    baseSuccessRate + (Math.random() - 0.5) * 4;
+                
+                // 模拟延迟（偶尔尖峰）
+                const baseLatency = 200;
+                const latency = Math.random() < 0.05 ? 
+                    800 + Math.random() * 1200 : 
+                    baseLatency + Math.random() * 300;
+                
+                callVolumeData.push({ time: timeStr, value: volume });
+                successRateData.push({ time: timeStr, value: Math.min(100, Math.max(0, successRate)) });
+                latencyData.push({ time: timeStr, value: Math.max(0, latency) });
+            }
+            
+            return {
+                callVolume: callVolumeData.reverse(),
+                successRate: successRateData.reverse(),
+                latency: latencyData.reverse()
+            };
+        },
+        
+        // 从时间范围获取小时数
+        getHoursFromTimeRange(timeRange) {
+            const rangeMap = {
+                '1h': 1,
+                '6h': 6,
+                '24h': 24,
+                '7d': 168
+            };
+            return rangeMap[timeRange] || 24;
+        },
+        
+        // 初始化图表
+        initCharts() {
+            this.initCallVolumeChart();
+            this.initSuccessRateChart();
+            this.initLatencyChart();
+        },
+        
+        // 初始化调用量趋势图
+        initCallVolumeChart() {
+            if (!this.$refs.callVolumeChart) return;
+            
+            if (this.charts.callVolume) {
+                this.charts.callVolume.dispose();
+            }
+            
+            this.charts.callVolume = echarts.init(this.$refs.callVolumeChart);
+            const option = {
+                grid: { top: 40, right: 40, bottom: 60, left: 60 },
+                xAxis: {
+                    type: 'category',
+                    data: this.timeSeriesData.callVolume.map(item => item.time),
+                    axisLabel: { fontSize: 12 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '调用次数',
+                    axisLabel: { fontSize: 12 }
+                },
+                series: [{
+                    type: 'line',
+                    data: this.timeSeriesData.callVolume.map(item => item.value),
+                    smooth: true,
+                    itemStyle: { color: '#409eff' },
+                    areaStyle: { 
+                        color: {
+                            type: 'linear',
+                            x: 0, y: 0, x2: 0, y2: 1,
+                            colorStops: [
+                                { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
+                                { offset: 1, color: 'rgba(64, 158, 255, 0.1)' }
+                            ]
+                        }
+                    }
+                }],
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: '{b}<br/>调用量: {c}次'
+                }
+            };
+            this.charts.callVolume.setOption(option);
+        },
+        
+        // 初始化成功率趋势图
+        initSuccessRateChart() {
+            if (!this.$refs.successRateChart) return;
+            
+            if (this.charts.successRate) {
+                this.charts.successRate.dispose();
+            }
+            
+            this.charts.successRate = echarts.init(this.$refs.successRateChart);
+            const option = {
+                grid: { top: 40, right: 40, bottom: 60, left: 60 },
+                xAxis: {
+                    type: 'category',
+                    data: this.timeSeriesData.successRate.map(item => item.time),
+                    axisLabel: { fontSize: 12 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '成功率(%)',
+                    min: 80,
+                    max: 100,
+                    axisLabel: { fontSize: 12 }
+                },
+                series: [{
+                    type: 'line',
+                    data: this.timeSeriesData.successRate.map(item => item.value),
+                    smooth: true,
+                    itemStyle: { color: '#67c23a' },
+                    markLine: {
+                        data: [{ yAxis: 95, lineStyle: { color: '#e6a23c', type: 'dashed' } }],
+                        label: { formatter: 'SLA: 95%' }
+                    }
+                }],
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: '{b}<br/>成功率: {c}%'
+                }
+            };
+            this.charts.successRate.setOption(option);
+        },
+        
+        // 初始化延迟分布图
+        initLatencyChart() {
+            if (!this.$refs.latencyChart) return;
+            
+            if (this.charts.latency) {
+                this.charts.latency.dispose();
+            }
+            
+            this.charts.latency = echarts.init(this.$refs.latencyChart);
+            const option = {
+                grid: { top: 40, right: 40, bottom: 60, left: 60 },
+                xAxis: {
+                    type: 'category',
+                    data: this.timeSeriesData.latency.map(item => item.time),
+                    axisLabel: { fontSize: 12 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '延迟(ms)',
+                    axisLabel: { fontSize: 12 }
+                },
+                series: [{
+                    type: 'bar',
+                    data: this.timeSeriesData.latency.map(item => ({
+                        value: item.value,
+                        itemStyle: { 
+                            color: item.value > 1000 ? '#f56c6c' : 
+                                   item.value > 500 ? '#e6a23c' : '#67c23a'
+                        }
+                    })),
+                    barWidth: '60%'
+                }],
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: '{b}<br/>延迟: {c}ms'
+                }
+            };
+            this.charts.latency.setOption(option);
+        },
+        
+        // 更新告警信息
+        updateAlerts() {
+            this.alerts = [];
+            
+            this.monitoringInstances.forEach(instance => {
+                // 检查成功率告警
+                if (instance.successRate < 90) {
+                    this.alerts.push({
+                        id: `success-${instance.instanceId}`,
+                        level: 'critical',
+                        message: `${instance.businessId} 成功率严重偏低: ${this.formatPercentage(instance.successRate)}`
+                    });
+                } else if (instance.successRate < 95) {
+                    this.alerts.push({
+                        id: `success-${instance.instanceId}`,
+                        level: 'warning',
+                        message: `${instance.businessId} 成功率偏低: ${this.formatPercentage(instance.successRate)}`
+                    });
+                }
+                
+                // 检查延迟告警
+                if (instance.averageLatency > 2000) {
+                    this.alerts.push({
+                        id: `latency-${instance.instanceId}`,
+                        level: 'critical',
+                        message: `${instance.businessId} 延迟严重超标: ${this.formatLatency(instance.averageLatency)}`
+                    });
+                } else if (instance.averageLatency > 1000) {
+                    this.alerts.push({
+                        id: `latency-${instance.instanceId}`,
+                        level: 'warning',
+                        message: `${instance.businessId} 延迟超标: ${this.formatLatency(instance.averageLatency)}`
+                    });
+                }
+                
+                // 检查熔断状态
+                if (instance.gatewayStatus === 'CIRCUIT_BREAKER_OPEN') {
+                    this.alerts.push({
+                        id: `circuit-${instance.instanceId}`,
+                        level: 'critical',
+                        message: `${instance.businessId} 服务熔断中`
+                    });
+                }
+            });
+            
+            console.log('告警信息更新完成:', this.alerts.length);
         },
         
         // 查看实例详情
@@ -694,6 +1069,46 @@ const app = createApp({
             } else {
                 return `${(value / 1000).toFixed(1)}s`;
             }
+        },
+        
+        // 计算QPS
+        calculateQPS(recentCalls) {
+            if (!recentCalls) return 0;
+            // 假设recentCalls是最近一分钟的调用次数
+            return Math.round(recentCalls / 60);
+        },
+        
+        // 获取实例卡片样式类
+        getInstanceCardClass(instance) {
+            if (instance.gatewayStatus === 'CIRCUIT_BREAKER_OPEN' || instance.successRate < 90) {
+                return 'critical';
+            }
+            if (instance.successRate < 95 || instance.averageLatency > 1000) {
+                return 'warning';
+            }
+            return 'healthy';
+        },
+        
+        // 获取实例状态点样式类
+        getInstanceStatusClass(instance) {
+            const cardClass = this.getInstanceCardClass(instance);
+            if (cardClass === 'critical') return 'status-critical';
+            if (cardClass === 'warning') return 'status-warning';
+            return 'status-healthy';
+        },
+        
+        // 获取成功率值样式类
+        getSuccessRateValueClass(rate) {
+            if (rate < 90) return 'critical';
+            if (rate < 95) return 'warning';
+            return 'success';
+        },
+        
+        // 获取延迟值样式类
+        getLatencyValueClass(latency) {
+            if (latency > 2000) return 'critical';
+            if (latency > 1000) return 'warning';
+            return 'success';
         },
         
         // 获取模拟监控统计数据
