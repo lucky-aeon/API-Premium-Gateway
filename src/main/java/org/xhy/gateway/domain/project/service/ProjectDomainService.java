@@ -222,4 +222,24 @@ public class ProjectDomainService {
         
         return null;
     }
+
+    /**
+     * 根据API Key获取项目ID
+     * 因为项目关联API Key，所以在项目表中查找
+     */
+    public String getProjectIdByApiKey(String apiKeyValue) {
+        logger.debug("根据API Key查找项目ID: {}", apiKeyValue);
+        
+        LambdaQueryWrapper<ProjectEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ProjectEntity::getApiKey, apiKeyValue);
+        
+        ProjectEntity project = projectRepository.selectOne(queryWrapper);
+        if (project == null) {
+            logger.debug("未找到使用此API Key的项目: {}", apiKeyValue);
+            return null;
+        }
+        
+        logger.debug("找到项目: ID={}, Name={}", project.getId(), project.getName());
+        return project.getId();
+    }
 } 

@@ -7,12 +7,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
-import org.xhy.gateway.domain.apikey.service.ApiKeyDomainService;
-import org.xhy.gateway.domain.project.service.ProjectDomainService;
+import org.xhy.gateway.application.service.AuthenticationAppService;
 
 /**
  * API Key 校验拦截器
  * 统一拦截所有API请求，进行身份验证
+ * 遵循DDD架构，基础设施层通过应用层调用领域层
  * 
  * @author xhy
  * @since 1.0.0
@@ -22,17 +22,13 @@ public class ApiKeyInterceptor implements HandlerInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(ApiKeyInterceptor.class);
 
-    private final ApiKeyDomainService apiKeyDomainService;
-    private final ProjectDomainService projectDomainService;
+    private final AuthenticationAppService authenticationAppService;
 
     // API Key 请求头名称
-    private static final String API_KEY_HEADER = "X-API-Key";
-    // 项目ID请求头名称
-    private static final String PROJECT_ID_HEADER = "X-Project-Id";
+    private static final String API_KEY_HEADER = "api-key";
 
-    public ApiKeyInterceptor(ApiKeyDomainService apiKeyDomainService, ProjectDomainService projectDomainService) {
-        this.apiKeyDomainService = apiKeyDomainService;
-        this.projectDomainService = projectDomainService;
+    public ApiKeyInterceptor(AuthenticationAppService authenticationAppService) {
+        this.authenticationAppService = authenticationAppService;
     }
 
     @Override
@@ -47,8 +43,6 @@ public class ApiKeyInterceptor implements HandlerInterceptor {
             logger.debug("跳过OPTIONS请求的API Key校验: {}", requestURI);
             return true;
         }
-        
-        // 所有被拦截的请求都需要API Key校验（已在WebMvcConfig中精确配置拦截路径）
 
         // 获取API Key
         String apiKey = extractApiKey(request);
@@ -58,35 +52,26 @@ public class ApiKeyInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 校验API Key
-        if (!apiKeyDomainService.isUsable(apiKey)) {
-            logger.warn("无效的API Key: {}, URI: {} {}", apiKey, method, requestURI);
-            writeErrorResponse(response, 401, "无效的API Key或API Key已过期");
+        // 通过应用层服务进行认证
+        AuthenticationAppService.AuthenticationResult result = authenticationAppService.authenticate(apiKey);
+        
+        if (!result.isSuccess()) {
+            logger.warn("认证失败: {}, URI: {} {}", result.getMessage(), method, requestURI);
+            writeErrorResponse(response, result.getStatusCode(), result.getMessage());
             return false;
         }
-
-        // 获取项目ID（可选，某些接口可能需要）
-        String projectId = request.getHeader(PROJECT_ID_HEADER);
-        if (StringUtils.hasText(projectId)) {
-            // 校验项目是否存在且活跃
-            if (!projectDomainService.isProjectActive(projectId)) {
-                logger.warn("项目不存在或已停用: {}, API Key: {}", projectId, apiKey);
-                writeErrorResponse(response, 403, "项目不存在或已停用");
-                return false;
-            }
-            
-            // 将项目ID设置到请求属性中，供后续处理使用
-            request.setAttribute("projectId", projectId);
-        }
-
-        // 将API Key设置到请求属性中，供后续处理使用
-        request.setAttribute("apiKey", apiKey);
 
         logger.debug("API Key校验通过: {}", apiKey);
         return true;
     }
 
-
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, 
+                               Object handler, Exception ex) throws Exception {
+        // 通过应用层服务清理认证上下文，避免内存泄漏
+        authenticationAppService.clearAuthenticationContext();
+        logger.debug("API上下文已清理");
+    }
 
     /**
      * 从请求中提取API Key

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.xhy.gateway.domain.apikey.entity.ApiKeyEntity;
 import org.xhy.gateway.domain.apikey.entity.ApiKeyStatus;
 import org.xhy.gateway.domain.apikey.repository.ApiKeyRepository;
+import org.xhy.gateway.domain.project.service.ProjectDomainService;
 import org.xhy.gateway.infrastructure.exception.ApiKeyException;
 import org.xhy.gateway.infrastructure.exception.EntityNotFoundException;
 
@@ -28,6 +29,7 @@ public class ApiKeyDomainService {
     private static final Logger logger = LoggerFactory.getLogger(ApiKeyDomainService.class);
 
     private final ApiKeyRepository apiKeyRepository;
+    private final ProjectDomainService projectDomainService;
     private final SecureRandom secureRandom;
 
     // API Key 配置
@@ -35,8 +37,9 @@ public class ApiKeyDomainService {
     private static final int API_KEY_LENGTH = 32;
     private static final String API_KEY_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-    public ApiKeyDomainService(ApiKeyRepository apiKeyRepository) {
+    public ApiKeyDomainService(ApiKeyRepository apiKeyRepository, ProjectDomainService projectDomainService) {
         this.apiKeyRepository = apiKeyRepository;
+        this.projectDomainService = projectDomainService;
         this.secureRandom = new SecureRandom();
     }
 
@@ -148,6 +151,34 @@ public class ApiKeyDomainService {
         }
         
         return apiKey.isUsable();
+    }
+
+    /**
+     * 根据API Key获取关联的项目ID
+     * 因为是项目关联API Key，所以需要通过ProjectDomainService查找
+     */
+    public String getProjectIdByApiKey(String apiKeyValue) {
+        logger.debug("根据API Key获取项目ID: {}", apiKeyValue);
+        
+        // 先验证API Key是否存在
+        LambdaQueryWrapper<ApiKeyEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ApiKeyEntity::getApiKeyValue, apiKeyValue);
+        
+        ApiKeyEntity apiKey = apiKeyRepository.selectOne(queryWrapper);
+        if (apiKey == null) {
+            logger.warn("API Key不存在: {}", apiKeyValue);
+            return null;
+        }
+        
+        // 通过ProjectDomainService根据API Key查找项目
+        return projectDomainService.getProjectIdByApiKey(apiKeyValue);
+    }
+
+    /**
+     * 校验API Key是否有效（用于拦截器）
+     */
+    public boolean isValidApiKey(String apiKeyValue) {
+        return isUsable(apiKeyValue);
     }
 
     private String generateUniqueApiKeyValue() {

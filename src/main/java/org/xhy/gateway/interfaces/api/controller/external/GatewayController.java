@@ -8,6 +8,7 @@ import org.xhy.gateway.application.service.SelectionAppService;
 import org.xhy.gateway.interfaces.api.common.Result;
 import org.xhy.gateway.interfaces.api.request.ReportResultRequest;
 import org.xhy.gateway.interfaces.api.request.SelectInstanceRequest;
+import org.xhy.gateway.infrastructure.context.ApiContext;
 
 /**
  * Gateway 对外暴露的API控制器
@@ -35,7 +36,12 @@ public class GatewayController {
      */
     @PostMapping("/select-instance")
     public Result<String> selectInstance(@Valid @RequestBody SelectInstanceRequest request) {
-        logger.info("接收到选择API实例请求: {}", request);
+        // 从上下文中获取当前请求的API Key和项目ID
+        String currentApiKey = ApiContext.getApiKey();
+        String currentProjectId = ApiContext.getProjectId();
+        
+        logger.info("接收到选择API实例请求: {}, API Key: {}, 项目ID: {}", 
+                request, currentApiKey, currentProjectId);
 
         String businessId = selectionAppService.selectBestInstance(request);
 
