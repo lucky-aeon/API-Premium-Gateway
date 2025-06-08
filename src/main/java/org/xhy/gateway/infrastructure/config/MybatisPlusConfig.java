@@ -29,6 +29,8 @@ public class MybatisPlusConfig {
                 // 插入时自动填充创建时间和更新时间
                 this.strictInsertFill(metaObject, "createdAt", LocalDateTime.class, LocalDateTime.now());
                 this.strictInsertFill(metaObject, "updatedAt", LocalDateTime.class, LocalDateTime.now());
+                // 插入时自动填充API Key颁发时间
+                this.strictInsertFill(metaObject, "issuedAt", LocalDateTime.class, LocalDateTime.now());
             }
 
             @Override

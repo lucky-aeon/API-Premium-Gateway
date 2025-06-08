@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xhy.gateway.application.assembler.ProjectAssembler;
 import org.xhy.gateway.application.dto.ProjectDTO;
+import org.xhy.gateway.application.dto.ProjectSimpleDTO;
 import org.xhy.gateway.domain.project.entity.ProjectEntity;
 import org.xhy.gateway.domain.project.service.ProjectDomainService;
 import org.xhy.gateway.interfaces.api.request.ProjectCreateRequest;
@@ -147,5 +148,19 @@ public class ProjectAppService {
 
         // TODO: 调用领域服务获取统计信息
         return projectDomainService.getProjectStatistics();
+    }
+
+    /**
+     * 获取简化项目列表（仅ID和名称）
+     * 用于下拉选择器等场景
+     */
+    public List<ProjectSimpleDTO> getSimpleProjectList() {
+        logger.debug("应用层获取简化项目列表");
+
+        // 调用领域服务获取所有项目
+        List<ProjectEntity> projectEntities = projectDomainService.getAllProjects();
+
+        // 转换为简化DTO列表返回
+        return projectAssembler.toSimpleDTOList(projectEntities);
     }
 } 

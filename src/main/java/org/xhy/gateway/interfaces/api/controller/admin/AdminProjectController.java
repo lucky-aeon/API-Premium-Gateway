@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import org.xhy.gateway.application.service.ProjectAppService;
 import org.xhy.gateway.interfaces.api.common.Result;
 import org.xhy.gateway.application.dto.ProjectDTO;
+import org.xhy.gateway.application.dto.ProjectSimpleDTO;
 
 import java.util.List;
 
@@ -105,5 +106,18 @@ public class AdminProjectController {
         Object statistics = projectAppService.getProjectStatistics();
         
         return Result.success("项目统计信息查询成功", statistics);
+    }
+
+    /**
+     * 获取简化项目列表（仅ID和名称）
+     * 用于下拉选择器等场景
+     */
+    @GetMapping("/simple")
+    public Result<List<ProjectSimpleDTO>> getSimpleProjectList() {
+        logger.debug("管理后台获取简化项目列表");
+        
+        List<ProjectSimpleDTO> result = projectAppService.getSimpleProjectList();
+        
+        return Result.success(result);
     }
 } 

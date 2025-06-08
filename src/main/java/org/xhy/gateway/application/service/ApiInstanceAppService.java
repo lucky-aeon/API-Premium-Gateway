@@ -163,4 +163,29 @@ public class ApiInstanceAppService {
         
         return ApiInstanceAssembler.toDTO(updatedEntity);
     }
+
+    /**
+     * 获取所有API实例（包含项目信息）- 用于管理后台
+     */
+    @Transactional(readOnly = true)
+    public List<ApiInstanceDTO> getAllInstancesWithProjects(String projectId, ApiInstanceStatus status) {
+        logger.info("获取所有API实例，项目ID: {}，状态: {}", projectId, status);
+        
+        List<ApiInstanceEntity> entities = apiInstanceDomainService.getAllInstancesWithProjects(projectId, status);
+        List<ApiInstanceDTO> dtos = ApiInstanceAssembler.toDTOList(entities);
+        
+        // 填充项目名称
+        for (ApiInstanceDTO dto : dtos) {
+            // 获取项目名称
+            try {
+                String pName = projectDomainService.getProjectNameById(dto.getProjectId());
+                dto.setProjectName(pName);
+            } catch (Exception e) {
+                logger.warn("获取项目名称失败，项目ID: {}", dto.getProjectId());
+                dto.setProjectName("未知项目");
+            }
+        }
+        
+        return dtos;
+    }
 } 

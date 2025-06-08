@@ -242,4 +242,19 @@ public class ProjectDomainService {
         logger.debug("找到项目: ID={}, Name={}", project.getId(), project.getName());
         return project.getId();
     }
+
+    /**
+     * 根据项目ID获取项目名称
+     */
+    public String getProjectNameById(String projectId) {
+        logger.debug("根据项目ID获取项目名称: {}", projectId);
+        
+        ProjectEntity project = projectRepository.selectById(projectId);
+        if (project == null) {
+            logger.debug("项目不存在: {}", projectId);
+            return null;
+        }
+        
+        return project.getName();
+    }
 } 

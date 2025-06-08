@@ -143,6 +143,29 @@ public class ApiInstanceDomainService {
         return success;
     }
 
+    /**
+     * 获取所有API实例（用于管理后台）
+     */
+    public List<ApiInstanceEntity> getAllInstancesWithProjects(String projectId, ApiInstanceStatus status) {
+        logger.debug("获取所有API实例，项目ID: {}，状态: {}", projectId, status);
+        
+        LambdaQueryWrapper<ApiInstanceEntity> queryWrapper = new LambdaQueryWrapper<>();
+        
+        // 按项目ID过滤
+        if (projectId != null && !projectId.trim().isEmpty()) {
+            queryWrapper.eq(ApiInstanceEntity::getProjectId, projectId);
+        }
+        
+        // 按状态过滤
+        if (status != null) {
+            queryWrapper.eq(ApiInstanceEntity::getStatus, status);
+        }
+        
+        queryWrapper.orderByDesc(ApiInstanceEntity::getCreatedAt);
+        
+        return apiInstanceRepository.selectList(queryWrapper);
+    }
+
     public void deleteApiInstance(String projectId, String businessId, ApiType apiType) {
         LambdaQueryWrapper<ApiInstanceEntity> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ApiInstanceEntity::getProjectId, projectId);

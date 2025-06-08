@@ -102,4 +102,18 @@ public class AdminApiInstanceController {
         // TODO: 实现获取所有实例的方法
         return Result.success("获取所有实例成功", null);
     }
+
+    /**
+     * 获取所有API实例（包含项目信息）- 用于管理后台
+     */
+    @GetMapping("/with-projects")
+    public Result<List<ApiInstanceDTO>> getAllInstancesWithProjects(
+            @RequestParam(required = false) String projectId,
+            @RequestParam(required = false) ApiInstanceStatus status) {
+        logger.debug("管理后台获取所有API实例列表（包含项目信息），项目ID: {}，状态: {}", projectId, status);
+        
+        List<ApiInstanceDTO> result = apiInstanceAppService.getAllInstancesWithProjects(projectId, status);
+        
+        return Result.success("获取实例列表成功", result);
+    }
 } 

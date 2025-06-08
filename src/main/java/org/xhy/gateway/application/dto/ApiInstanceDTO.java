@@ -16,6 +16,7 @@ public class ApiInstanceDTO {
 
     private String id;
     private String projectId;
+    private String projectName;  // 新增：项目名称
     private String userId;
     private String apiIdentifier;
     private ApiType apiType;
@@ -23,6 +24,7 @@ public class ApiInstanceDTO {
     private Map<String, Object> routingParams;
     private ApiInstanceStatus status;
     private Map<String, Object> metadata;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -115,4 +117,14 @@ public class ApiInstanceDTO {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+
+
 } 

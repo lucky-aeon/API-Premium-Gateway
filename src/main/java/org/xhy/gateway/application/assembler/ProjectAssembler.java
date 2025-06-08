@@ -3,6 +3,7 @@ package org.xhy.gateway.application.assembler;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Component;
 import org.xhy.gateway.application.dto.ProjectDTO;
+import org.xhy.gateway.application.dto.ProjectSimpleDTO;
 import org.xhy.gateway.domain.project.entity.ProjectEntity;
 import org.xhy.gateway.interfaces.api.request.ProjectCreateRequest;
 
@@ -57,6 +58,30 @@ public class ProjectAssembler {
 
         return entities.stream()
                 .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Entity 转换为简化 DTO
+     */
+    public ProjectSimpleDTO toSimpleDTO(ProjectEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+
+        return new ProjectSimpleDTO(entity.getId(), entity.getName());
+    }
+
+    /**
+     * Entity 列表转换为简化 DTO 列表
+     */
+    public List<ProjectSimpleDTO> toSimpleDTOList(List<ProjectEntity> entities) {
+        if (entities == null) {
+            return null;
+        }
+
+        return entities.stream()
+                .map(this::toSimpleDTO)
                 .collect(Collectors.toList());
     }
 } 
