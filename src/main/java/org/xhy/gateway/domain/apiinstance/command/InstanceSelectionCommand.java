@@ -34,7 +34,7 @@ public class InstanceSelectionCommand {
     /**
      * 负载均衡策略
      */
-    private final LoadBalancingType loadBalancingType;
+    private final LoadBalancingType loadBalancingType = LoadBalancingType.ROUND_ROBIN;
 
     public InstanceSelectionCommand(String projectId, String userId, String apiIdentifier, String apiType) {
         this(projectId, userId, apiIdentifier, apiType, LoadBalancingType.SMART);
@@ -45,7 +45,6 @@ public class InstanceSelectionCommand {
         this.userId = userId;
         this.apiIdentifier = apiIdentifier;
         this.apiType = apiType;
-        this.loadBalancingType = loadBalancingType != null ? loadBalancingType : LoadBalancingType.SMART;
     }
 
     public String getProjectId() {

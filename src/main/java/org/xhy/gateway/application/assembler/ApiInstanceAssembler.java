@@ -52,6 +52,15 @@ public class ApiInstanceAssembler {
         return entity;
     }
 
+    public static ApiInstanceEntity toEntity(ApiInstanceCreateRequest request, String projectId) {
+        ApiInstanceEntity entity = new ApiInstanceEntity();
+        BeanUtils.copyProperties(request, entity);
+        // 设置从上下文获取的projectId，覆盖请求中的projectId
+        entity.setProjectId(projectId);
+
+        return entity;
+    }
+
     public static ApiInstanceEntity toEntity(ApiInstanceUpdateRequest request) {
         ApiInstanceEntity entity = new ApiInstanceEntity();
         BeanUtils.copyProperties(request, entity);
@@ -59,5 +68,39 @@ public class ApiInstanceAssembler {
         return entity;
     }
 
+    public static ApiInstanceEntity toEntity(ApiInstanceUpdateRequest request, String projectId) {
+        ApiInstanceEntity entity = new ApiInstanceEntity();
+        BeanUtils.copyProperties(request, entity);
+        // 设置从上下文获取的projectId，覆盖请求中的projectId
+        entity.setProjectId(projectId);
+
+        return entity;
+    }
+
+    /**
+     * 将批量创建请求转换为实体列表
+     */
+    public static List<ApiInstanceEntity> toEntityList(List<ApiInstanceCreateRequest> requests) {
+        if (requests == null) {
+            return null;
+        }
+
+        return requests.stream()
+                .map(ApiInstanceAssembler::toEntity)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 将批量创建请求转换为实体列表，使用指定的projectId
+     */
+    public static List<ApiInstanceEntity> toEntityList(List<ApiInstanceCreateRequest> requests, String projectId) {
+        if (requests == null) {
+            return null;
+        }
+
+        return requests.stream()
+                .map(request -> toEntity(request, projectId))
+                .collect(Collectors.toList());
+    }
 
 }

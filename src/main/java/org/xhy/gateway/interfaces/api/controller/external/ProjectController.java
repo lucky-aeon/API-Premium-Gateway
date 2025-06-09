@@ -43,27 +43,4 @@ public class ProjectController {
         return Result.success("项目创建成功", result);
     }
 
-    /**
-     * 根据ID获取项目详情
-     */
-    @GetMapping("/{id}")
-    public Result<ProjectDTO> getProjectById(@PathVariable String id) {
-        logger.debug("接收获取项目详情请求，项目ID: {}", id);
-
-        ProjectDTO result = projectAppService.getProjectById(id);
-        
-        return Result.success(result);
-    }
-
-    /**
-     * 获取项目列表
-     */
-    @GetMapping
-    public Result<List<ProjectDTO>> getProjectList() {
-        logger.debug("接收获取项目列表请求");
-
-        List<ProjectDTO> result = projectAppService.getProjectList();
-        
-        return Result.success(result);
-    }
 } 

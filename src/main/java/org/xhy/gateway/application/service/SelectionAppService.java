@@ -40,11 +40,11 @@ public class SelectionAppService {
      * 选择最佳API实例
      * 只读操作，不需要事务
      */
-    public String selectBestInstance(SelectInstanceRequest request) {
+    public String selectBestInstance(SelectInstanceRequest request,String currentProjectId) {
         logger.info("应用层开始选择API实例: {}", request);
 
         // 应用层通过Assembler将Request对象转换成领域命令对象
-        InstanceSelectionCommand command = selectionAssembler.toCommand(request);
+        InstanceSelectionCommand command = selectionAssembler.toCommand(request,currentProjectId);
 
         // 调用领域服务执行选择算法
         String businessId = selectionDomainService.selectBestInstance(command);
@@ -58,12 +58,12 @@ public class SelectionAppService {
      * 需要事务支持，因为涉及指标数据更新
      */
     @Transactional(rollbackFor = Exception.class)
-    public void reportCallResult(ReportResultRequest request) {
+    public void reportCallResult(ReportResultRequest request,String projectId) {
         logger.info("应用层开始处理调用结果上报: instanceId={}, success={}", 
                 request.getInstanceId(), request.getSuccess());
 
         // 应用层通过Assembler将Request对象转换成领域命令对象
-        CallResultCommand command = selectionAssembler.toCommand(request);
+        CallResultCommand command = selectionAssembler.toCommand(request,projectId);
 
         // 调用领域服务处理结果上报
         metricsCollectionDomainService.recordCallResult(command);

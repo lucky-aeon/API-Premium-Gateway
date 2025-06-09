@@ -11,6 +11,8 @@ import java.util.Map;
  */
 public class CallResultCommand {
 
+    private String projectId;
+
     /**
      * 实例ID
      */
@@ -56,6 +58,14 @@ public class CallResultCommand {
         this.errorType = errorType;
         this.usageMetrics = usageMetrics;
         this.callTimestamp = callTimestamp;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
     }
 
     public String getInstanceId() {

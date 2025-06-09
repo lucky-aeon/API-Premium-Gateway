@@ -13,11 +13,6 @@ import java.util.Map;
  */
 public class ReportResultRequest {
 
-    /**
-     * 项目ID，必填
-     */
-    @NotBlank(message = "项目ID不能为空")
-    private String projectId;
 
     /**
      * 用户ID，可选
@@ -73,14 +68,7 @@ public class ReportResultRequest {
     public ReportResultRequest() {
     }
 
-    // Getter 和 Setter 方法
-    public String getProjectId() {
-        return projectId;
-    }
 
-    public void setProjectId(String projectId) {
-        this.projectId = projectId;
-    }
 
     public String getUserId() {
         return userId;
@@ -157,7 +145,6 @@ public class ReportResultRequest {
     @Override
     public String toString() {
         return "ReportResultRequest{" +
-                "projectId='" + projectId + '\'' +
                 ", userId='" + userId + '\'' +
                 ", instanceId='" + instanceId + '\'' +
                 ", businessId='" + businessId + '\'' +

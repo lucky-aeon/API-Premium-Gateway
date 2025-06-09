@@ -216,4 +216,12 @@ public class ApiKeyDomainService {
         queryWrapper.eq(ApiKeyEntity::getApiKeyValue, apiKeyValue);
         return apiKeyRepository.selectCount(queryWrapper) == 0;
     }
+
+    // 使用 apiKey：修改 apiKey 的状态为激活
+    public void useApiKey(String apiKeyValue) {
+        LambdaUpdateWrapper<ApiKeyEntity> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ApiKeyEntity::getApiKeyValue, apiKeyValue);
+        updateWrapper.set(ApiKeyEntity::getStatus, ApiKeyStatus.ACTIVE);
+        apiKeyRepository.update(null, updateWrapper);
+    }
 } 

@@ -14,9 +14,6 @@ import java.util.Map;
  */
 public class ApiInstanceCreateRequest {
 
-    @NotBlank(message = "项目ID不能为空")
-    private String projectId;
-
     private String userId;
 
     @NotBlank(message = "API标识符不能为空")
@@ -34,13 +31,6 @@ public class ApiInstanceCreateRequest {
 
     public ApiInstanceCreateRequest() {}
 
-    public String getProjectId() {
-        return projectId;
-    }
-
-    public void setProjectId(String projectId) {
-        this.projectId = projectId;
-    }
 
     public String getUserId() {
         return userId;

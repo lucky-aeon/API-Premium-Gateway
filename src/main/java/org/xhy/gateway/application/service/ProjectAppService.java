@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.xhy.gateway.application.assembler.ProjectAssembler;
 import org.xhy.gateway.application.dto.ProjectDTO;
 import org.xhy.gateway.application.dto.ProjectSimpleDTO;
+import org.xhy.gateway.domain.apikey.service.ApiKeyDomainService;
 import org.xhy.gateway.domain.project.entity.ProjectEntity;
 import org.xhy.gateway.domain.project.service.ProjectDomainService;
 import org.xhy.gateway.interfaces.api.request.ProjectCreateRequest;
@@ -27,10 +28,13 @@ public class ProjectAppService {
 
     private final ProjectDomainService projectDomainService;
     private final ProjectAssembler projectAssembler;
+    private final ApiKeyDomainService apiKeyDomainService;
 
-    public ProjectAppService(ProjectDomainService projectDomainService, ProjectAssembler projectAssembler) {
+
+    public ProjectAppService(ProjectDomainService projectDomainService, ProjectAssembler projectAssembler, ApiKeyDomainService apiKeyDomainService) {
         this.projectDomainService = projectDomainService;
         this.projectAssembler = projectAssembler;
+        this.apiKeyDomainService = apiKeyDomainService;
     }
 
     /**
@@ -47,6 +51,8 @@ public class ProjectAppService {
                 request.getDescription(),
                 request.getApiKey()
         );
+
+        apiKeyDomainService.useApiKey(request.getApiKey());
 
         // 转换为DTO返回
         ProjectDTO result = projectAssembler.toDTO(projectEntity);

@@ -283,8 +283,8 @@ public class MonitoringAppService {
         logger.debug("查询到 {} 条指标数据", metrics.size());
         
         if (metrics.isEmpty()) {
-            logger.warn("未找到指标数据，返回模拟数据");
-            return generateMockTimeSeriesData(timeRange);
+
+            return new TimeSeriesDTO();
         }
         
         // 按时间窗口聚合数据

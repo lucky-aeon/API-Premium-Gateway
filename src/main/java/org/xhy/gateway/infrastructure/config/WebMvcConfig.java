@@ -21,7 +21,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(apiKeyInterceptor)
-                .addPathPatterns("/gateway/**", "/projects/**", "/instances/**") // 拦截对外暴露的API
+                .addPathPatterns("/gateway/**", "/instances/**") // 拦截对外暴露的API
                 .excludePathPatterns("/admin/**", "/health", "/static/**", "/", "/index.html") // 排除内部管理接口和静态资源
                 .order(1); // 设置拦截器执行顺序，数字越小优先级越高
     }

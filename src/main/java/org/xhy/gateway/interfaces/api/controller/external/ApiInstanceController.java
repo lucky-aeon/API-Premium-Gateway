@@ -2,15 +2,19 @@ package org.xhy.gateway.interfaces.api.controller.external;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.xhy.gateway.application.dto.ApiInstanceDTO;
 import org.xhy.gateway.application.service.ApiInstanceAppService;
 import org.xhy.gateway.domain.apiinstance.entity.ApiType;
+import org.xhy.gateway.infrastructure.context.ApiContext;
 import org.xhy.gateway.interfaces.api.common.Result;
 import org.xhy.gateway.interfaces.api.request.api_instance.ApiInstanceCreateRequest;
 import org.xhy.gateway.interfaces.api.request.api_instance.ApiInstanceUpdateRequest;
+import org.xhy.gateway.interfaces.api.request.api_instance.ApiInstanceBatchCreateRequest;
 
 import jakarta.validation.Valid;
+import java.util.List;
 
 /**
  * API实例控制器 - 对外暴露接口
@@ -38,26 +42,53 @@ public class ApiInstanceController {
      */
     @PostMapping
     public Result<ApiInstanceDTO> createApiInstance(@Valid @RequestBody ApiInstanceCreateRequest request) {
-        logger.info("接收到创建API实例请求，项目ID: {}，业务ID: {}", request.getProjectId(), request.getBusinessId());
+        String projectId = ApiContext.getProjectId();
+        logger.info("接收到创建API实例请求，项目ID: {}，业务ID: {}",projectId, request.getBusinessId());
+
+        // 先检查是否已存在
+        boolean alreadyExists = apiInstanceAppService.isApiInstanceExists(projectId, request.getApiType(), request.getBusinessId());
+
+        ApiInstanceDTO result = apiInstanceAppService.createApiInstance(request,projectId);
         
-        ApiInstanceDTO result = apiInstanceAppService.createApiInstance(request);
+        // 根据是否已存在返回不同的消息
+        if (alreadyExists) {
+            logger.info("API实例已存在，实例ID: {}", result.getId());
+            return Result.success("API实例已存在", result);
+        } else {
+            logger.info("API实例创建成功，实例ID: {}", result.getId());
+            return Result.success("API实例创建成功", result);
+        }
+    }
+
+    /**
+     * 批量创建API实例
+     * 使用方通过API Key批量创建新的API实例
+     */
+    @PostMapping("/batch")
+    public Result<List<ApiInstanceDTO>> batchCreateApiInstances(@Validated @RequestBody ApiInstanceBatchCreateRequest request) {
+        logger.info("接收到批量创建API实例请求，实例数量: {}", request.getInstances().size());
+        String projectId = ApiContext.getProjectId();
+
+        List<ApiInstanceDTO> result = apiInstanceAppService.batchCreateApiInstances(request.getInstances(),projectId);
         
-        logger.info("API实例创建成功，实例ID: {}", result.getId());
-        return Result.success("API实例创建成功", result);
+        logger.info("批量API实例创建成功，创建数量: {}", result.size());
+        return Result.success("批量API实例创建成功", result);
     }
 
     /**
      * 更新API实例
      * 使用方更新已有的API实例配置
      */
-    @PutMapping("/{id}")
-    public Result<ApiInstanceDTO> updateApiInstance(@PathVariable String id,
+    @PutMapping("/{apiType}/{businessId}")
+    public Result<ApiInstanceDTO> updateApiInstance(@PathVariable String apiType,
+                                                    @PathVariable String businessId,
                                                     @Valid @RequestBody ApiInstanceUpdateRequest request) {
-        logger.info("接收到更新API实例请求，实例ID: {}", id);
+        String projectId = ApiContext.getProjectId();
+        logger.info("接收到更新API实例请求，项目ID: {}，API类型: {}，业务ID: {}", projectId, apiType, businessId);
         
-        ApiInstanceDTO result = apiInstanceAppService.updateApiInstance(id, request);
+        ApiInstanceDTO result = apiInstanceAppService.updateApiInstance(projectId, apiType, businessId, request);
         
-        logger.info("API实例更新成功，实例ID: {}", id);
+        logger.info("API实例更新成功，实例ID: {}", result.getId());
         return Result.success("API实例更新成功", result);
     }
 
@@ -65,11 +96,11 @@ public class ApiInstanceController {
      * 删除API实例
      * 使用方删除不再需要的API实例
      */
-    @DeleteMapping("/{projectId}/{businessId}/{apiType}")
-    public Result<Void> deleteApiInstance(@PathVariable String projectId, 
-                                          @PathVariable String businessId, 
-                                          @PathVariable String apiType) {
-        logger.info("接收到删除API实例请求，项目ID: {}, 业务ID: {}, API类型: {}", projectId, businessId, apiType);
+    @DeleteMapping("/{apiType}/{businessId}")
+    public Result<Void> deleteApiInstance(@PathVariable String apiType,
+                                          @PathVariable String businessId) {
+        String projectId = ApiContext.getProjectId();
+        logger.info("接收到删除API实例请求，项目ID: {}, API类型: {}, 业务ID: {}", projectId, apiType, businessId);
       
         apiInstanceAppService.deleteApiInstance(projectId, businessId, ApiType.fromCode(apiType));
         
@@ -81,13 +112,15 @@ public class ApiInstanceController {
      * 激活API实例
      * 使API实例可以参与负载均衡
      */
-    @PostMapping("/{id}/activate")
-    public Result<ApiInstanceDTO> activateApiInstance(@PathVariable String id) {
-        logger.info("接收到激活API实例请求，实例ID: {}", id);
+    @PostMapping("/{apiType}/{businessId}/activate")
+    public Result<ApiInstanceDTO> activateApiInstance(@PathVariable String apiType,
+                                                      @PathVariable String businessId) {
+        String projectId = ApiContext.getProjectId();
+        logger.info("接收到激活API实例请求，项目ID: {}, API类型: {}, 业务ID: {}", projectId, apiType, businessId);
         
-        ApiInstanceDTO result = apiInstanceAppService.activateApiInstance(id);
+        ApiInstanceDTO result = apiInstanceAppService.activateApiInstance(projectId, apiType, businessId);
         
-        logger.info("API实例激活成功，实例ID: {}", id);
+        logger.info("API实例激活成功，实例ID: {}", result.getId());
         return Result.success("API实例激活成功", result);
     }
 
@@ -95,13 +128,15 @@ public class ApiInstanceController {
      * 停用API实例
      * 暂停API实例参与负载均衡
      */
-    @PostMapping("/{id}/deactivate")
-    public Result<ApiInstanceDTO> deactivateApiInstance(@PathVariable String id) {
-        logger.info("接收到停用API实例请求，实例ID: {}", id);
+    @PostMapping("/{apiType}/{businessId}/deactivate")
+    public Result<ApiInstanceDTO> deactivateApiInstance(@PathVariable String apiType,
+                                                        @PathVariable String businessId) {
+        String projectId = ApiContext.getProjectId();
+        logger.info("接收到停用API实例请求，项目ID: {}, API类型: {}, 业务ID: {}", projectId, apiType, businessId);
         
-        ApiInstanceDTO result = apiInstanceAppService.deactivateApiInstance(id);
+        ApiInstanceDTO result = apiInstanceAppService.deactivateApiInstance(projectId, apiType, businessId);
         
-        logger.info("API实例停用成功，实例ID: {}", id);
+        logger.info("API实例停用成功，实例ID: {}", result.getId());
         return Result.success("API实例停用成功", result);
     }
 
@@ -109,13 +144,15 @@ public class ApiInstanceController {
      * 标记API实例为已弃用
      * 标记API实例为弃用状态，逐步下线
      */
-    @PostMapping("/{id}/deprecate")
-    public Result<ApiInstanceDTO> deprecateApiInstance(@PathVariable String id) {
-        logger.info("接收到弃用API实例请求，实例ID: {}", id);
+    @PostMapping("/{apiType}/{businessId}/deprecate")
+    public Result<ApiInstanceDTO> deprecateApiInstance(@PathVariable String apiType,
+                                                       @PathVariable String businessId) {
+        String projectId = ApiContext.getProjectId();
+        logger.info("接收到弃用API实例请求，项目ID: {}, API类型: {}, 业务ID: {}", projectId, apiType, businessId);
         
-        ApiInstanceDTO result = apiInstanceAppService.deprecateApiInstance(id);
+        ApiInstanceDTO result = apiInstanceAppService.deprecateApiInstance(projectId, apiType, businessId);
         
-        logger.info("API实例标记为已弃用成功，实例ID: {}", id);
+        logger.info("API实例标记为已弃用成功，实例ID: {}", result.getId());
         return Result.success("API实例标记为已弃用成功", result);
     }
 } 

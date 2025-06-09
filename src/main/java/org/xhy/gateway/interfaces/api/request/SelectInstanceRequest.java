@@ -11,12 +11,6 @@ import jakarta.validation.constraints.NotBlank;
 public class SelectInstanceRequest {
 
     /**
-     * 项目ID，必填
-     */
-    @NotBlank(message = "项目ID不能为空")
-    private String projectId;
-
-    /**
      * 用户ID，可选
      */
     private String userId;
@@ -36,21 +30,6 @@ public class SelectInstanceRequest {
     public SelectInstanceRequest() {
     }
 
-    public SelectInstanceRequest(String projectId, String userId, String apiIdentifier, String apiType) {
-        this.projectId = projectId;
-        this.userId = userId;
-        this.apiIdentifier = apiIdentifier;
-        this.apiType = apiType;
-    }
-
-    // Getter 和 Setter 方法
-    public String getProjectId() {
-        return projectId;
-    }
-
-    public void setProjectId(String projectId) {
-        this.projectId = projectId;
-    }
 
     public String getUserId() {
         return userId;
@@ -79,7 +58,6 @@ public class SelectInstanceRequest {
     @Override
     public String toString() {
         return "SelectInstanceRequest{" +
-                "projectId='" + projectId + '\'' +
                 ", userId='" + userId + '\'' +
                 ", apiIdentifier='" + apiIdentifier + '\'' +
                 ", apiType='" + apiType + '\'' +

@@ -43,7 +43,7 @@ public class GatewayController {
         logger.info("接收到选择API实例请求: {}, API Key: {}, 项目ID: {}", 
                 request, currentApiKey, currentProjectId);
 
-        String businessId = selectionAppService.selectBestInstance(request);
+        String businessId = selectionAppService.selectBestInstance(request,currentProjectId);
 
         logger.info("成功选择API实例，businessId: {}", businessId);
         return Result.success("API实例选择成功", businessId);
@@ -59,7 +59,9 @@ public class GatewayController {
         logger.info("接收到调用结果上报: 实例ID={}, 成功={}, 延迟={}ms", 
                 request.getInstanceId(), request.getSuccess(), request.getLatencyMs());
 
-        selectionAppService.reportCallResult(request);
+        String projectId = ApiContext.getProjectId();
+
+        selectionAppService.reportCallResult(request,projectId);
 
         logger.debug("调用结果上报成功");
         return Result.success("调用结果上报成功", null);

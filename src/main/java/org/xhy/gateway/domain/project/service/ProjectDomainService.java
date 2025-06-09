@@ -44,8 +44,11 @@ public class ProjectDomainService {
         validateApiKey(apiKey);
         
         // 检查项目名称是否已存在
-        validateProjectNameUnique(name);
-        
+        ProjectEntity projectByApiKey = getProjectByApiKey(apiKey);
+        if (projectByApiKey!=null){
+            return projectByApiKey;
+        }
+
         // 创建项目实体
         ProjectEntity project = new ProjectEntity(name, description, apiKey);
         
@@ -54,6 +57,12 @@ public class ProjectDomainService {
         
         logger.info("项目创建成功，项目ID: {}，项目名: {}", project.getId(), project.getName());
         return project;
+    }
+
+    public ProjectEntity getProjectByApiKey(String apiKey) {
+        LambdaQueryWrapper<ProjectEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ProjectEntity::getApiKey, apiKey);
+        return projectRepository.selectOne(queryWrapper);
     }
 
     /**
