@@ -12,6 +12,7 @@ import org.xhy.gateway.interfaces.api.common.Result;
 import org.xhy.gateway.interfaces.api.request.api_instance.ApiInstanceCreateRequest;
 import org.xhy.gateway.interfaces.api.request.api_instance.ApiInstanceUpdateRequest;
 import org.xhy.gateway.interfaces.api.request.api_instance.ApiInstanceBatchCreateRequest;
+import org.xhy.gateway.interfaces.api.request.api_instance.ApiInstanceBatchDeleteRequest;
 
 import jakarta.validation.Valid;
 import java.util.List;
@@ -73,6 +74,21 @@ public class ApiInstanceController {
         
         logger.info("批量API实例创建成功，创建数量: {}", result.size());
         return Result.success("批量API实例创建成功", result);
+    }
+
+    /**
+     * 批量删除API实例
+     * 使用方通过API Key批量删除不再需要的API实例
+     */
+    @DeleteMapping("/batch")
+    public Result<Integer> batchDeleteApiInstances(@Validated @RequestBody ApiInstanceBatchDeleteRequest request) {
+        String projectId = ApiContext.getProjectId();
+        logger.info("接收到批量删除API实例请求，项目ID: {}，删除数量: {}", projectId, request.getInstances().size());
+
+        int deletedCount = apiInstanceAppService.batchDeleteApiInstances(projectId, request.getInstances());
+        
+        logger.info("批量API实例删除成功，删除数量: {}", deletedCount);
+        return Result.success("批量API实例删除成功", deletedCount);
     }
 
     /**

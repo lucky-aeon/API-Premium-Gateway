@@ -14,6 +14,7 @@ import org.xhy.gateway.infrastructure.exception.BusinessException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -334,5 +335,80 @@ public class ApiInstanceDomainService {
         }
         
         return apiInstance;
+    }
+
+    /**
+     * 批量删除API实例
+     * 根据项目ID和业务键列表删除多个API实例
+     * 优化性能：按apiType分组，使用WHERE IN批量删除
+     */
+    public int batchDeleteApiInstances(String projectId, List<ApiInstanceDeleteKey> deleteKeys) {
+        if (deleteKeys == null || deleteKeys.isEmpty()) {
+            logger.warn("批量删除API实例失败：删除列表为空");
+            return 0;
+        }
+
+        logger.info("开始批量删除API实例，项目ID: {}，删除数量: {}", projectId, deleteKeys.size());
+
+        // 按 apiType 分组，收集对应的 businessIds
+        Map<ApiType, List<String>> groupedByApiType = deleteKeys.stream()
+                .collect(Collectors.groupingBy(
+                        ApiInstanceDeleteKey::getApiType,
+                        Collectors.mapping(ApiInstanceDeleteKey::getBusinessId, Collectors.toList())
+                ));
+
+        int totalDeletedCount = 0;
+        
+        // 按组批量删除，避免N+1查询问题
+        for (Map.Entry<ApiType, List<String>> entry : groupedByApiType.entrySet()) {
+            ApiType apiType = entry.getKey();
+            List<String> businessIds = entry.getValue();
+            
+            try {
+                LambdaQueryWrapper<ApiInstanceEntity> queryWrapper = new LambdaQueryWrapper<>();
+                queryWrapper.eq(ApiInstanceEntity::getProjectId, projectId)
+                           .eq(ApiInstanceEntity::getApiType, apiType)
+                           .in(ApiInstanceEntity::getBusinessId, businessIds);
+
+                int deletedCount = apiInstanceRepository.delete(queryWrapper);
+                totalDeletedCount += deletedCount;
+                
+                logger.debug("批量删除API实例成功: apiType={}, businessIds={}, 删除数量={}", 
+                        apiType, businessIds, deletedCount);
+                
+                if (deletedCount < businessIds.size()) {
+                    logger.warn("部分API实例不存在: apiType={}, 请求删除数量={}, 实际删除数量={}", 
+                            apiType, businessIds.size(), deletedCount);
+                }
+            } catch (Exception e) {
+                logger.error("批量删除API实例失败: apiType={}, businessIds={}, error={}", 
+                        apiType, businessIds, e.getMessage());
+                // 继续删除其他组，不因单个组失败而中断
+            }
+        }
+
+        logger.info("批量删除API实例完成，成功删除数量: {}", totalDeletedCount);
+        return totalDeletedCount;
+    }
+
+    /**
+     * API实例删除键
+     */
+    public static class ApiInstanceDeleteKey {
+        private final ApiType apiType;
+        private final String businessId;
+
+        public ApiInstanceDeleteKey(ApiType apiType, String businessId) {
+            this.apiType = apiType;
+            this.businessId = businessId;
+        }
+
+        public ApiType getApiType() {
+            return apiType;
+        }
+
+        public String getBusinessId() {
+            return businessId;
+        }
     }
 } 

@@ -13,9 +13,11 @@ import org.xhy.gateway.domain.apiinstance.service.ApiInstanceDomainService;
 import org.xhy.gateway.domain.project.service.ProjectDomainService;
 import org.xhy.gateway.interfaces.api.request.api_instance.ApiInstanceCreateRequest;
 import org.xhy.gateway.interfaces.api.request.api_instance.ApiInstanceUpdateRequest;
+import org.xhy.gateway.interfaces.api.request.api_instance.ApiInstanceBatchDeleteRequest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * API实例应用服务
@@ -168,6 +170,34 @@ public class ApiInstanceAppService {
     // 根据 project，业务 id，类型删除
     public void deleteApiInstance(String projectId, String businessId, ApiType apiType) {
         apiInstanceDomainService.deleteApiInstance(projectId, businessId, apiType);
+    }
+
+    /**
+     * 批量删除API实例
+     */
+    @Transactional
+    public int batchDeleteApiInstances(String projectId, List<ApiInstanceBatchDeleteRequest.ApiInstanceDeleteItem> deleteItems) {
+        if (deleteItems == null || deleteItems.isEmpty()) {
+            logger.warn("批量删除API实例失败：删除列表为空");
+            return 0;
+        }
+
+        logger.info("开始批量删除API实例，项目ID: {}，删除数量: {}", projectId, deleteItems.size());
+
+        projectDomainService.validateProjectExists(projectId);
+
+        // 转换为领域对象
+        List<ApiInstanceDomainService.ApiInstanceDeleteKey> deleteKeys = deleteItems.stream()
+                .map(item -> new ApiInstanceDomainService.ApiInstanceDeleteKey(
+                        ApiType.fromCode(item.getApiType()), 
+                        item.getBusinessId()))
+                .collect(Collectors.toList());
+
+        // 调用领域服务批量删除
+        int deletedCount = apiInstanceDomainService.batchDeleteApiInstances(projectId, deleteKeys);
+
+        logger.info("批量删除API实例完成，成功删除数量: {}", deletedCount);
+        return deletedCount;
     }
 
     /**
