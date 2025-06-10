@@ -2,6 +2,7 @@ package org.xhy.gateway.application.assembler;
 
 import org.springframework.stereotype.Component;
 import org.xhy.gateway.domain.apiinstance.command.InstanceSelectionCommand;
+import org.xhy.gateway.domain.apiinstance.entity.AffinityContext;
 import org.xhy.gateway.domain.metrics.command.CallResultCommand;
 import org.xhy.gateway.interfaces.api.request.ReportResultRequest;
 import org.xhy.gateway.interfaces.api.request.SelectInstanceRequest;
@@ -19,23 +20,34 @@ public class SelectionAssembler {
     /**
      * 将SelectInstanceRequest转换为InstanceSelectionCommand
      */
-    public InstanceSelectionCommand toCommand(SelectInstanceRequest request,String projectId) {
+    public InstanceSelectionCommand toCommand(SelectInstanceRequest request, String projectId) {
         if (request == null) {
             return null;
+        }
+
+        // 构建亲和性上下文
+        AffinityContext affinityContext = null;
+        if (request.hasAffinityRequirement()) {
+            affinityContext = new AffinityContext(
+                request.getAffinityType(),
+                request.getAffinityKey()
+            );
         }
 
         return new InstanceSelectionCommand(
                 projectId,
                 request.getUserId(),
                 request.getApiIdentifier(),
-                request.getApiType()
+                request.getApiType(),
+                null, // 使用默认负载均衡策略
+                affinityContext
         );
     }
 
     /**
      * 将ReportResultRequest转换为CallResultCommand
      */
-    public CallResultCommand toCommand(ReportResultRequest request,String projectId) {
+    public CallResultCommand toCommand(ReportResultRequest request, String projectId) {
         if (request == null) {
             return null;
         }
@@ -49,7 +61,7 @@ public class SelectionAssembler {
                 request.getUsageMetrics(),
                 request.getCallTimestamp()
         );
-callResultCommand.setProjectId(projectId);
+        callResultCommand.setProjectId(projectId);
         return callResultCommand;
     }
 } 

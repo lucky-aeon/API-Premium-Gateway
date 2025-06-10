@@ -25,7 +25,7 @@ import static org.xhy.gateway.domain.apiinstance.service.SelectionConstants.*;
 
 /**
  * API实例选择领域服务
- * 使用策略模式实现智能调度算法
+ * 使用策略模式实现智能调度算法，支持亲和性绑定
  * 
  * @author xhy
  * @since 1.0.0
@@ -39,20 +39,23 @@ public class ApiInstanceSelectionDomainService {
     private final MetricsRepository metricsRepository;
     private final ProjectDomainService projectDomainService;
     private final LoadBalancingStrategyFactory strategyFactory;
+    private final AffinityAwareStrategyDecorator affinityDecorator;
 
     public ApiInstanceSelectionDomainService(ApiInstanceRepository apiInstanceRepository,
                                            MetricsRepository metricsRepository,
                                            ProjectDomainService projectDomainService,
-                                           LoadBalancingStrategyFactory strategyFactory) {
+                                           LoadBalancingStrategyFactory strategyFactory,
+                                           AffinityAwareStrategyDecorator affinityDecorator) {
         this.apiInstanceRepository = apiInstanceRepository;
         this.metricsRepository = metricsRepository;
         this.projectDomainService = projectDomainService;
         this.strategyFactory = strategyFactory;
+        this.affinityDecorator = affinityDecorator;
     }
 
     /**
      * 选择最佳API实例
-     * 使用用户指定的负载均衡策略
+     * 使用用户指定的负载均衡策略，支持亲和性绑定
      * 
      * @param command 实例选择命令对象
      * @return 选中的实例
@@ -80,12 +83,24 @@ public class ApiInstanceSelectionDomainService {
             throw new BusinessException("NO_HEALTHY_INSTANCE", "所有API实例都不可用或被熔断");
         }
 
-        // 5. 使用指定的负载均衡策略选择实例
+        // 5. 使用亲和性感知的策略选择实例
         LoadBalancingStrategy strategy = strategyFactory.getStrategy(command.getLoadBalancingType());
-        ApiInstanceEntity selected = strategy.selectInstance(healthyInstances, metricsMap);
+        ApiInstanceEntity selected = affinityDecorator.selectInstanceWithAffinity(
+            healthyInstances, 
+            metricsMap, 
+            strategy, 
+            command.getAffinityContext()
+        );
 
-        logger.info("选择API实例成功: businessId={}, instanceId={}, strategy={}", 
-                selected.getBusinessId(), selected.getId(), command.getLoadBalancingType());
+        if (command.hasAffinityRequirement()) {
+            logger.info("选择API实例成功（含亲和性）: businessId={}, instanceId={}, strategy={}, affinity={}", 
+                    selected.getBusinessId(), selected.getId(), command.getLoadBalancingType(), 
+                    command.getAffinityContext().getBindingKey());
+        } else {
+            logger.info("选择API实例成功: businessId={}, instanceId={}, strategy={}", 
+                    selected.getBusinessId(), selected.getId(), command.getLoadBalancingType());
+        }
+        
         return selected;
     }
 

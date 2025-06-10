@@ -1,5 +1,6 @@
 package org.xhy.gateway.domain.apiinstance.command;
 
+import org.xhy.gateway.domain.apiinstance.entity.AffinityContext;
 import org.xhy.gateway.domain.apiinstance.entity.LoadBalancingType;
 
 /**
@@ -34,17 +35,36 @@ public class InstanceSelectionCommand {
     /**
      * 负载均衡策略
      */
-    private final LoadBalancingType loadBalancingType = LoadBalancingType.ROUND_ROBIN;
+    private final LoadBalancingType loadBalancingType;
+
+    /**
+     * 亲和性上下文（可选）
+     */
+    private final AffinityContext affinityContext;
 
     public InstanceSelectionCommand(String projectId, String userId, String apiIdentifier, String apiType) {
-        this(projectId, userId, apiIdentifier, apiType, LoadBalancingType.SMART);
+        this(projectId, userId, apiIdentifier, apiType, LoadBalancingType.SMART, null);
     }
 
     public InstanceSelectionCommand(String projectId, String userId, String apiIdentifier, String apiType, LoadBalancingType loadBalancingType) {
+        this(projectId, userId, apiIdentifier, apiType, loadBalancingType, null);
+    }
+
+    public InstanceSelectionCommand(String projectId, String userId, String apiIdentifier, String apiType, 
+                                  LoadBalancingType loadBalancingType, AffinityContext affinityContext) {
         this.projectId = projectId;
         this.userId = userId;
         this.apiIdentifier = apiIdentifier;
         this.apiType = apiType;
+        this.loadBalancingType = loadBalancingType != null ? loadBalancingType : LoadBalancingType.SMART;
+        this.affinityContext = affinityContext;
+    }
+
+    /**
+     * 检查是否有亲和性要求
+     */
+    public boolean hasAffinityRequirement() {
+        return affinityContext != null && affinityContext.isValid();
     }
 
     public String getProjectId() {
@@ -67,6 +87,10 @@ public class InstanceSelectionCommand {
         return loadBalancingType;
     }
 
+    public AffinityContext getAffinityContext() {
+        return affinityContext;
+    }
+
     @Override
     public String toString() {
         return "InstanceSelectionCommand{" +
@@ -75,6 +99,7 @@ public class InstanceSelectionCommand {
                 ", apiIdentifier='" + apiIdentifier + '\'' +
                 ", apiType='" + apiType + '\'' +
                 ", loadBalancingType=" + loadBalancingType +
+                ", affinityContext=" + affinityContext +
                 '}';
     }
 } 

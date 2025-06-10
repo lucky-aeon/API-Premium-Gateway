@@ -27,9 +27,21 @@ public class SelectInstanceRequest {
     @NotBlank(message = "API类型不能为空")
     private String apiType;
 
+    /**
+     * 亲和性标识，可选
+     * 用于亲和性绑定，相同标识的请求会路由到相同实例
+     * 例如：会话ID、用户ID、批次ID等
+     */
+    private String affinityKey;
+
+    /**
+     * 亲和性类型，可选
+     * 定义亲和性的类型，例如：SESSION、USER、BATCH、REGION等
+     */
+    private String affinityType;
+
     public SelectInstanceRequest() {
     }
-
 
     public String getUserId() {
         return userId;
@@ -55,12 +67,38 @@ public class SelectInstanceRequest {
         this.apiType = apiType;
     }
 
+    public String getAffinityKey() {
+        return affinityKey;
+    }
+
+    public void setAffinityKey(String affinityKey) {
+        this.affinityKey = affinityKey;
+    }
+
+    public String getAffinityType() {
+        return affinityType;
+    }
+
+    public void setAffinityType(String affinityType) {
+        this.affinityType = affinityType;
+    }
+
+    /**
+     * 检查是否有亲和性要求
+     */
+    public boolean hasAffinityRequirement() {
+        return affinityKey != null && !affinityKey.trim().isEmpty() 
+            && affinityType != null && !affinityType.trim().isEmpty();
+    }
+
     @Override
     public String toString() {
         return "SelectInstanceRequest{" +
-                ", userId='" + userId + '\'' +
+                "userId='" + userId + '\'' +
                 ", apiIdentifier='" + apiIdentifier + '\'' +
                 ", apiType='" + apiType + '\'' +
+                ", affinityKey='" + affinityKey + '\'' +
+                ", affinityType='" + affinityType + '\'' +
                 '}';
     }
 } 
