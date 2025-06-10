@@ -257,6 +257,58 @@
             font-size: 14px;
             color: #333;
         }
+
+        /* 表格样式优化 */
+        .el-table {
+            border-radius: 8px;
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        .el-table .el-table__header-wrapper .el-table__header {
+            background-color: #f8f9fa;
+        }
+
+        .el-table .el-table__header th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
+        }
+
+        .el-table .el-table__body-wrapper .el-table__row:hover > td {
+            background-color: #f7f9fc;
+        }
+
+        /* 表格内容对齐优化 */
+        .el-table .cell {
+            padding: 0 8px;
+        }
+
+        /* 数字列右对齐 */
+        .el-table th:nth-child(7) .cell,
+        .el-table th:nth-child(8) .cell,
+        .el-table th:nth-child(9) .cell,
+        .el-table td:nth-child(7) .cell,
+        .el-table td:nth-child(8) .cell,
+        .el-table td:nth-child(9) .cell {
+            text-align: right;
+            justify-content: flex-end;
+        }
+
+        /* 业务ID列左对齐并使用等宽字体 */
+        .el-table td:nth-child(4) .cell {
+            text-align: left;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+        }
+
+        /* API标识符列左对齐并使用等宽字体 */
+        .el-table td:nth-child(2) .cell {
+            text-align: left;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+        }
         
         .instance-status {
             width: 8px;
@@ -628,28 +680,36 @@
                         </div>
                     </div>
 
-                    <!-- 实例监控 -->
+                    <!-- 实例观测 -->
                     <div v-if="activeMenu === 'monitoring'" :key="'monitoring-' + activeMenu">
                         <div class="page-header">
-                            <h2>API实例监控</h2>
-                            <p>实时监控项目下API实例的调用情况和健康状态</p>
+                            <h2>实例观测</h2>
+                            <p>API实例的实时状态观测和监控</p>
                         </div>
                         
-                        <!-- 监控控制台头部 -->
-                        <div class="monitoring-header">
-                            <div class="time-controls">
-                                <span style="font-weight: 500;">时间范围:</span>
-                                <el-select v-model="monitoringTimeRange" @change="loadMonitoringData" style="width: 120px;">
-                                    <el-option label="最近1小时" value="1h"></el-option>
-                                    <el-option label="最近6小时" value="6h"></el-option>
-                                    <el-option label="最近24小时" value="24h"></el-option>
-                                    <el-option label="最近7天" value="7d"></el-option>
-                                </el-select>
-                                <el-select v-model="monitoringFilter.projectId" placeholder="选择项目" clearable style="width: 160px;" @change="loadMonitoringData">
-                                    <el-option v-for="project in projectList" :key="project.id" 
+                        <!-- 时间窗口和过滤控制区域 -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <!-- 时间窗口选择器 -->
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 14px; color: #666;">时间窗口:</span>
+                                    <el-radio-group v-model="observationFilter.timeWindow" @change="loadObservationData" size="small">
+                                        <el-radio-button label="1m">1分钟</el-radio-button>
+                                        <el-radio-button label="10m">10分钟</el-radio-button>
+                                        <el-radio-button label="30m">30分钟</el-radio-button>
+                                        <el-radio-button label="1h">1小时</el-radio-button>
+                                        <el-radio-button label="6h">6小时</el-radio-button>
+                                        <el-radio-button label="24h">24小时</el-radio-button>
+                                    </el-radio-group>
+                                </div>
+                                
+                                <!-- 项目过滤 -->
+                                <el-select v-model="observationFilter.projectId" placeholder="选择项目" clearable style="width: 160px;" @change="loadObservationData">
+                                    <el-option v-for="project in projects" :key="project.id" 
                                              :label="project.name" :value="project.id"></el-option>
                                 </el-select>
                             </div>
+                            
                             <div style="display: flex; align-items: center; gap: 16px;">
                                 <div class="auto-refresh-indicator">
                                     <span class="refresh-dot" :class="{ paused: autoRefreshPaused }"></span>
@@ -658,7 +718,7 @@
                                 <el-button @click="toggleAutoRefresh" type="text">
                                     {{ autoRefreshPaused ? '启动' : '暂停' }}
                                 </el-button>
-                                <el-button type="primary" @click="refreshMonitoringData" :loading="monitoringLoading">
+                                <el-button type="primary" @click="refreshObservationData" :loading="observationLoading">
                                     <el-icon><Refresh /></el-icon>
                                     刷新
                                 </el-button>
@@ -668,117 +728,94 @@
                         <!-- 核心指标概览 -->
                         <div class="stats-grid">
                             <div class="stat-card">
-                                <div class="stat-value">{{ monitoringStats.totalInstances }}</div>
+                                <div class="stat-value">{{ observationOverview.totalInstances || 0 }}</div>
                                 <div class="stat-label">总实例数</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-value">{{ monitoringStats.healthyInstances }}</div>
+                                <div class="stat-value">{{ observationOverview.healthyInstances || 0 }}</div>
                                 <div class="stat-label">健康实例</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-value">{{ monitoringStats.activeInstances }}</div>
+                                <div class="stat-value">{{ observationOverview.activeInstances || 0 }}</div>
                                 <div class="stat-label">活跃实例</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-value">{{ formatPercentage(monitoringStats.averageSuccessRate) }}</div>
-                                <div class="stat-label">平均成功率</div>
+                                <div class="stat-value">{{ observationOverview.faultyInstances || 0 }}</div>
+                                <div class="stat-label">异常实例</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-value">{{ formatLatency(monitoringStats.averageLatency) }}</div>
-                                <div class="stat-label">平均延迟</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value">{{ monitoringStats.totalCalls }}</div>
+                                <div class="stat-value">{{ formatNumber(observationOverview.totalCallCount) }}</div>
                                 <div class="stat-label">总调用量</div>
                             </div>
-                        </div>
-                        
-                        <!-- 趋势图表区域 -->
-                        <div class="chart-container">
-                            <div class="chart-title">调用量趋势</div>
-                            <div class="chart-box" ref="callVolumeChart"></div>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                            <div class="chart-container">
-                                <div class="chart-title">成功率趋势</div>
-                                <div class="chart-box" ref="successRateChart"></div>
-                            </div>
-                            <div class="chart-container">
-                                <div class="chart-title">延迟分布</div>
-                                <div class="chart-box" ref="latencyChart"></div>
+                            <div class="stat-card">
+                                <div class="stat-value">{{ formatPercentage(observationOverview.averageSuccessRate) }}</div>
+                                <div class="stat-label">平均成功率</div>
                             </div>
                         </div>
                         
-                        <!-- 异常告警区域 -->
-                        <div class="alert-section" v-if="alerts.length > 0">
-                            <div class="alert-title">⚠️ 异常告警</div>
-                            <div>
-                                <span v-for="alert in alerts" :key="alert.id" 
-                                      :class="['alert-item', alert.level === 'critical' ? 'alert-critical' : 'alert-warning']">
-                                    {{ alert.message }}
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <!-- 实例状态网格 -->
+                        <!-- 实例状态表格 -->
                         <div class="content-card">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">实例状态</h3>
-                                <div>
-                                    <el-select v-model="monitoringFilter.status" placeholder="实例状态" clearable style="width: 120px; margin-right: 10px;" @change="loadMonitoringData">
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">实例状态列表</h3>
+                                <div style="display: flex; gap: 10px;">
+                                    <el-select v-model="observationFilter.instanceStatus" placeholder="实例状态" clearable size="small" style="width: 120px;" @change="loadObservationData">
                                         <el-option label="活跃" value="ACTIVE"></el-option>
                                         <el-option label="非活跃" value="INACTIVE"></el-option>
                                         <el-option label="已弃用" value="DEPRECATED"></el-option>
                                     </el-select>
-                                    <el-select v-model="monitoringFilter.gatewayStatus" placeholder="网关状态" clearable style="width: 120px;" @change="loadMonitoringData">
+                                    <el-select v-model="observationFilter.gatewayStatus" placeholder="网关状态" clearable size="small" style="width: 120px;" @change="loadObservationData">
                                         <el-option label="健康" value="HEALTHY"></el-option>
                                         <el-option label="降级" value="DEGRADED"></el-option>
+                                        <el-option label="故障" value="FAULTY"></el-option>
                                         <el-option label="熔断" value="CIRCUIT_BREAKER_OPEN"></el-option>
                                     </el-select>
                                 </div>
                             </div>
                             
-                            <div class="instances-grid" v-loading="monitoringLoading">
-                                <div v-for="instance in monitoringInstances" :key="instance.instanceId" 
-                                     :class="['instance-card', getInstanceCardClass(instance)]"
-                                     @click="viewInstanceDetails(instance)">
-                                    <div class="instance-header">
-                                        <span class="instance-name">{{ instance.businessId }}</span>
-                                        <span :class="['instance-status', getInstanceStatusClass(instance)]"></span>
-                                    </div>
-                                    <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                                        {{ instance.projectName }} • {{ instance.apiType }}
-                                    </div>
-                                    <div class="instance-metrics">
-                                        <div class="metric-item">
-                                            <span class="metric-label">成功率</span>
-                                            <span :class="['metric-value', getSuccessRateValueClass(instance.successRate)]">
-                                                {{ formatPercentage(instance.successRate) }}
-                                            </span>
-                                        </div>
-                                        <div class="metric-item">
-                                            <span class="metric-label">延迟</span>
-                                            <span :class="['metric-value', getLatencyValueClass(instance.averageLatency)]">
-                                                {{ formatLatency(instance.averageLatency) }}
-                                            </span>
-                                        </div>
-                                        <div class="metric-item">
-                                            <span class="metric-label">QPS</span>
-                                            <span class="metric-value">{{ calculateQPS(instance.recentCalls) }}</span>
-                                        </div>
-                                        <div class="metric-item">
-                                            <span class="metric-label">并发</span>
-                                            <span class="metric-value">{{ instance.concurrency || 0 }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="instance-actions">
-                                        <button class="action-btn primary" @click.stop="viewInstanceDetails(instance)">
-                                            详情
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            <el-table :data="observationInstances" v-loading="observationLoading" style="width: 100%" stripe>
+                                <el-table-column prop="projectName" label="项目名称" width="120" show-overflow-tooltip></el-table-column>
+                                <el-table-column prop="apiIdentifier" label="API标识符" width="140" show-overflow-tooltip></el-table-column>
+                                <el-table-column prop="apiType" label="API类型" width="100"></el-table-column>
+                                <el-table-column prop="businessId" label="业务ID" min-width="160" show-overflow-tooltip></el-table-column>
+                                <el-table-column prop="instanceStatus" label="实例状态" width="100">
+                                    <template #default="scope">
+                                        <el-tag :type="getInstanceStatusTagType(scope.row.instanceStatus)" size="small">
+                                            {{ getInstanceStatusText(scope.row.instanceStatus) }}
+                                        </el-tag>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="gatewayStatus" label="网关状态" width="100">
+                                    <template #default="scope">
+                                        <el-tag :type="getGatewayStatusTagType(scope.row.gatewayStatus)" size="small">
+                                            {{ getGatewayStatusText(scope.row.gatewayStatus) }}
+                                        </el-tag>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="callCount" label="调用量" width="100" sortable>
+                                    <template #default="scope">
+                                        {{ formatNumber(scope.row.callCount) }}
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="successRate" label="成功率" width="100" sortable>
+                                    <template #default="scope">
+                                        <span :style="{ color: getSuccessRateColor(scope.row.successRate) }">
+                                            {{ formatPercentage(scope.row.successRate) }}
+                                        </span>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="averageLatency" label="平均延迟" width="100" sortable>
+                                    <template #default="scope">
+                                        <span :style="{ color: getLatencyColor(scope.row.averageLatency) }">
+                                            {{ formatLatency(scope.row.averageLatency) }}
+                                        </span>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="lastActiveTime" label="最后活跃时间" width="160">
+                                    <template #default="scope">
+                                        {{ formatLastActiveTime(scope.row.lastActiveTime) }}
+                                    </template>
+                                </el-table-column>
+                            </el-table>
                         </div>
                     </div>
 

@@ -75,7 +75,7 @@ public class MetricsCollectionDomainService {
     /**
      * 获取或创建指标记录
      */
-    private InstanceMetricsEntity getOrCreateMetrics(String instanceId, LocalDateTime timeWindow) {
+    private synchronized InstanceMetricsEntity getOrCreateMetrics(String instanceId, LocalDateTime timeWindow) {
         LambdaQueryWrapper<InstanceMetricsEntity> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(InstanceMetricsEntity::getRegistryId, instanceId)
                    .eq(InstanceMetricsEntity::getTimestampWindow, timeWindow);
