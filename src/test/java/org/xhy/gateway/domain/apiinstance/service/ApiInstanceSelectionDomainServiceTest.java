@@ -32,33 +32,32 @@ class ApiInstanceSelectionDomainServiceTest extends BaseIntegrationTest {
     private ApiInstanceSelectionDomainService selectionDomainService;
 
     @Test
-    @DisplayName("轮询策略测试 - 无历史指标时应该轮询分配")
+    @DisplayName("轮询策略测试")
     void testRoundRobinStrategy() {
-        // Given: 三个相同的GPT-4o实例，无历史指标
+        // Given: 创建基础指标数据
+        createSimpleMetrics(testInstanceId1, 20, 5);
+        createSimpleMetrics(testInstanceId2, 20, 5);
+        createSimpleMetrics(testInstanceId3, 20, 5);
+
         Map<String, Integer> selectionCount = new HashMap<>();
         
-        // When: 使用轮询策略多次选择实例
-        for (int i = 0; i < 15; i++) {
+        // When: 使用轮询策略多次选择
+        for (int i = 0; i < 30; i++) {
             InstanceSelectionCommand command = new InstanceSelectionCommand(
                     testProjectId, null, TEST_API_IDENTIFIER, ApiType.MODEL.getCode(), LoadBalancingType.ROUND_ROBIN
             );
             
-            String selectedBusinessId = selectionDomainService.selectBestInstance(command);
-            assertNotNull(selectedBusinessId);
-            
+            ApiInstanceEntity selectedEntity = selectionDomainService.selectBestInstance(command);
+            String selectedBusinessId = selectedEntity.getBusinessId();
             selectionCount.merge(selectedBusinessId, 1, Integer::sum);
         }
         
-        // Then: 验证轮询负载均衡效果
+        // Then: 轮询策略应该相对平均地分配
         System.out.println("轮询策略分布: " + selectionCount);
         
-        // 每个实例都应该被选中
-        assertTrue(selectionCount.containsKey(TEST_BUSINESS_ID_1));
-        assertTrue(selectionCount.containsKey(TEST_BUSINESS_ID_2));
-        assertTrue(selectionCount.containsKey(TEST_BUSINESS_ID_3));
-        
-        // 分布应该相对均匀（每个实例至少被选中一次）
-        assertTrue(selectionCount.values().stream().allMatch(count -> count >= 1));
+        // 每个实例应该被选择约10次（30次选择 / 3个实例）
+        selectionCount.values().forEach(count -> 
+                assertTrue(count >= 8 && count <= 12, "轮询策略应该相对平均分配，实际次数: " + count));
     }
 
     @Test
@@ -77,7 +76,8 @@ class ApiInstanceSelectionDomainServiceTest extends BaseIntegrationTest {
                     testProjectId, null, TEST_API_IDENTIFIER, ApiType.MODEL.getCode(), LoadBalancingType.SUCCESS_RATE_FIRST
             );
             
-            String selectedBusinessId = selectionDomainService.selectBestInstance(command);
+            ApiInstanceEntity selectedEntity = selectionDomainService.selectBestInstance(command);
+            String selectedBusinessId = selectedEntity.getBusinessId();
             selectionCount.merge(selectedBusinessId, 1, Integer::sum);
         }
         
@@ -112,7 +112,8 @@ class ApiInstanceSelectionDomainServiceTest extends BaseIntegrationTest {
                     testProjectId, null, TEST_API_IDENTIFIER, ApiType.MODEL.getCode(), LoadBalancingType.LATENCY_FIRST
             );
             
-            String selectedBusinessId = selectionDomainService.selectBestInstance(command);
+            ApiInstanceEntity selectedEntity = selectionDomainService.selectBestInstance(command);
+            String selectedBusinessId = selectedEntity.getBusinessId();
             selectionCount.merge(selectedBusinessId, 1, Integer::sum);
         }
         
@@ -149,7 +150,8 @@ class ApiInstanceSelectionDomainServiceTest extends BaseIntegrationTest {
                     testProjectId, null, TEST_API_IDENTIFIER, ApiType.MODEL.getCode(), LoadBalancingType.ROUND_ROBIN
             );
             
-            String selectedBusinessId = selectionDomainService.selectBestInstance(command);
+            ApiInstanceEntity selectedEntity = selectionDomainService.selectBestInstance(command);
+            String selectedBusinessId = selectedEntity.getBusinessId();
             selectionCount.merge(selectedBusinessId, 1, Integer::sum);
         }
         
@@ -189,15 +191,15 @@ class ApiInstanceSelectionDomainServiceTest extends BaseIntegrationTest {
         InstanceSelectionCommand command = new InstanceSelectionCommand(
                 testProjectId, null, TEST_API_IDENTIFIER, ApiType.MODEL.getCode()
         );
-        
-        String selectedBusinessId = selectionDomainService.selectBestInstance(command);
-        
+
+        ApiInstanceEntity apiInstanceEntity = selectionDomainService.selectBestInstance(command);
+
         // Then: 应该使用默认的智能策略，选择最优实例
-        System.out.println("默认智能策略选择的实例: " + selectedBusinessId);
-        assertNotNull(selectedBusinessId);
+        System.out.println("默认智能策略选择的实例: " + apiInstanceEntity.getBusinessId());
+        assertNotNull(apiInstanceEntity.getBusinessId());
         
         // 智能策略应该选择成功率高的实例（实例1）
-        assertEquals(TEST_BUSINESS_ID_1, selectedBusinessId, "智能策略应该选择成功率最高的实例1");
+        assertEquals(TEST_BUSINESS_ID_1, apiInstanceEntity.getBusinessId(), "智能策略应该选择成功率最高的实例1");
     }
 
     @Test
@@ -217,8 +219,8 @@ class ApiInstanceSelectionDomainServiceTest extends BaseIntegrationTest {
         
         Map<String, Integer> successRateScenario = new HashMap<>();
         for (int i = 0; i < 20; i++) {
-            String selected = selectionDomainService.selectBestInstance(command1);
-            successRateScenario.merge(selected, 1, Integer::sum);
+            ApiInstanceEntity apiInstanceEntity = selectionDomainService.selectBestInstance(command1);
+            successRateScenario.merge(apiInstanceEntity.getBusinessId(), 1, Integer::sum);
         }
         
         System.out.println("智能策略-成功率差异场景: " + successRateScenario);
@@ -239,8 +241,8 @@ class ApiInstanceSelectionDomainServiceTest extends BaseIntegrationTest {
         
         Map<String, Integer> latencyScenario = new HashMap<>();
         for (int i = 0; i < 20; i++) {
-            String selected = selectionDomainService.selectBestInstance(command2);
-            latencyScenario.merge(selected, 1, Integer::sum);
+            ApiInstanceEntity apiInstanceEntity = selectionDomainService.selectBestInstance(command2);
+            latencyScenario.merge(apiInstanceEntity.getBusinessId(), 1, Integer::sum);
         }
         
         System.out.println("智能策略-延迟差异场景: " + latencyScenario);
@@ -262,9 +264,9 @@ class ApiInstanceSelectionDomainServiceTest extends BaseIntegrationTest {
         Map<String, Integer> balancedScenario = new HashMap<>();
         System.out.println("场景3详细选择过程：");
         for (int i = 0; i < 15; i++) {
-            String selected = selectionDomainService.selectBestInstance(command3);
-            balancedScenario.merge(selected, 1, Integer::sum);
-            System.out.printf("第%d次选择: %s\n", i + 1, selected);
+            ApiInstanceEntity apiInstanceEntity = selectionDomainService.selectBestInstance(command3);
+            balancedScenario.merge(apiInstanceEntity.getBusinessId(), 1, Integer::sum);
+            System.out.printf("第%d次选择: %s\n", i + 1, apiInstanceEntity.getBusinessId());
         }
         
         System.out.println("智能策略-性能相近场景: " + balancedScenario);
@@ -303,9 +305,9 @@ class ApiInstanceSelectionDomainServiceTest extends BaseIntegrationTest {
             InstanceSelectionCommand command = new InstanceSelectionCommand(
                     testProjectId, null, TEST_API_IDENTIFIER, ApiType.MODEL.getCode(), LoadBalancingType.SMART
             );
-            
-            String selectedBusinessId = selectionDomainService.selectBestInstance(command);
-            selectionCount.merge(selectedBusinessId, 1, Integer::sum);
+
+            ApiInstanceEntity apiInstanceEntity = selectionDomainService.selectBestInstance(command);
+            selectionCount.merge(apiInstanceEntity.getBusinessId(), 1, Integer::sum);
         }
         
         // Then: 智能策略在冷启动时所有实例得分相同，但仍会基于综合评分选择
@@ -339,9 +341,9 @@ class ApiInstanceSelectionDomainServiceTest extends BaseIntegrationTest {
             InstanceSelectionCommand command = new InstanceSelectionCommand(
                     testProjectId, null, TEST_API_IDENTIFIER, ApiType.MODEL.getCode(), strategy
             );
-            
-            String selectedBusinessId = selectionDomainService.selectBestInstance(command);
-            strategyResults.put(strategy, selectedBusinessId);
+
+            ApiInstanceEntity apiInstanceEntity = selectionDomainService.selectBestInstance(command);
+            strategyResults.put(strategy, apiInstanceEntity.getBusinessId());
         }
         
         // Then: 验证不同策略的选择结果

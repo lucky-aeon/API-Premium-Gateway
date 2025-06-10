@@ -55,9 +55,9 @@ public class ApiInstanceSelectionDomainService {
      * 使用用户指定的负载均衡策略
      * 
      * @param command 实例选择命令对象
-     * @return 选中的实例业务ID
+     * @return 选中的实例
      */
-    public String selectBestInstance(InstanceSelectionCommand command) {
+    public ApiInstanceEntity selectBestInstance(InstanceSelectionCommand command) {
         logger.info("开始选择最佳API实例: {}", command);
 
         // 1. 验证项目存在
@@ -86,7 +86,7 @@ public class ApiInstanceSelectionDomainService {
 
         logger.info("选择API实例成功: businessId={}, instanceId={}, strategy={}", 
                 selected.getBusinessId(), selected.getId(), command.getLoadBalancingType());
-        return selected.getBusinessId();
+        return selected;
     }
 
     /**

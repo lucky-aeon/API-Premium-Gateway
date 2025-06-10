@@ -38,7 +38,7 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
         ReportResultRequest request = createSuccessReportRequest(testInstanceId1, 800L);
 
         // When: 上报调用结果
-        selectionAppService.reportCallResult(request);
+        selectionAppService.reportCallResult(request,this.testProjectId);
 
         // Then: 验证数据已写入数据库
         InstanceMetricsEntity metrics = findLatestMetrics(testInstanceId1);
@@ -61,7 +61,7 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
                 testInstanceId2, 5000L, "API限流", "RATE_LIMIT");
 
         // When: 上报调用结果
-        selectionAppService.reportCallResult(request);
+        selectionAppService.reportCallResult(request,this.testProjectId);
 
         // Then: 验证数据已写入数据库
         InstanceMetricsEntity metrics = findLatestMetrics(testInstanceId2);
@@ -88,7 +88,7 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
         for (int i = 0; i < 7; i++) {
             ReportResultRequest successRequest = createSuccessReportRequest(
                     instanceId, 500L + (i * 100)); // 延迟递增
-            selectionAppService.reportCallResult(successRequest);
+            selectionAppService.reportCallResult(successRequest,this.testProjectId);
             System.out.println("上报成功调用 #" + (i + 1));
         }
 
@@ -96,7 +96,7 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
         for (int i = 0; i < 3; i++) {
             ReportResultRequest failureRequest = createFailureReportRequest(
                     instanceId, 3000L + (i * 500), "错误 #" + (i + 1), "API_ERROR");
-            selectionAppService.reportCallResult(failureRequest);
+            selectionAppService.reportCallResult(failureRequest,this.testProjectId);
             System.out.println("上报失败调用 #" + (i + 1));
         }
 
@@ -124,13 +124,13 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
         // 2次成功，8次失败 = 80%错误率
         for (int i = 0; i < 2; i++) {
             ReportResultRequest successRequest = createSuccessReportRequest(instanceId, 600L);
-            selectionAppService.reportCallResult(successRequest);
+            selectionAppService.reportCallResult(successRequest,this.testProjectId);
         }
 
         for (int i = 0; i < 8; i++) {
             ReportResultRequest failureRequest = createFailureReportRequest(
                     instanceId, 4000L, "服务异常", "SERVICE_ERROR");
-            selectionAppService.reportCallResult(failureRequest);
+            selectionAppService.reportCallResult(failureRequest,this.testProjectId);
         }
 
         // When & Then: 验证熔断状态
@@ -156,7 +156,7 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
         // 10次成功调用，但延迟都很高 (>5000ms)
         for (int i = 0; i < 10; i++) {
             ReportResultRequest request = createSuccessReportRequest(instanceId, 6000L + (i * 100));
-            selectionAppService.reportCallResult(request);
+            selectionAppService.reportCallResult(request,this.testProjectId);
         }
 
         // When & Then: 验证降级状态
@@ -190,9 +190,9 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
         ReportResultRequest request3 = createSuccessReportRequestWithUsage(instanceId, 900L, usage3);
 
         // When: 上报调用结果
-        selectionAppService.reportCallResult(request1);
-        selectionAppService.reportCallResult(request2);
-        selectionAppService.reportCallResult(request3);
+        selectionAppService.reportCallResult(request1,this.testProjectId);
+        selectionAppService.reportCallResult(request2,this.testProjectId);
+        selectionAppService.reportCallResult(request3,this.testProjectId);
 
         // Then: 验证使用指标数据
         InstanceMetricsEntity metrics = findLatestMetrics(instanceId);
@@ -213,7 +213,6 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
      */
     private ReportResultRequest createSuccessReportRequest(String instanceId, long latencyMs) {
         ReportResultRequest request = new ReportResultRequest();
-        request.setProjectId(testProjectId);
         request.setInstanceId(instanceId);
         request.setBusinessId(TEST_BUSINESS_ID_1);
         request.setSuccess(true);
@@ -228,7 +227,6 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
     private ReportResultRequest createFailureReportRequest(String instanceId, long latencyMs, 
                                                           String errorMessage, String errorType) {
         ReportResultRequest request = new ReportResultRequest();
-        request.setProjectId(testProjectId);
         request.setInstanceId(instanceId);
         request.setBusinessId(TEST_BUSINESS_ID_1);
         request.setSuccess(false);

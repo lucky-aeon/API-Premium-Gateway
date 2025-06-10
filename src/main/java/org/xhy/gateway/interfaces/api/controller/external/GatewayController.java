@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import org.xhy.gateway.application.service.SelectionAppService;
+import org.xhy.gateway.application.dto.ApiInstanceDTO;
 import org.xhy.gateway.interfaces.api.common.Result;
 import org.xhy.gateway.interfaces.api.request.ReportResultRequest;
 import org.xhy.gateway.interfaces.api.request.SelectInstanceRequest;
@@ -31,11 +32,11 @@ public class GatewayController {
 
     /**
      * 选择最佳API实例
-     * 根据调度算法返回最优的businessId
+     * 根据调度算法返回最优的API实例信息
      * 需要API Key校验
      */
     @PostMapping("/select-instance")
-    public Result<String> selectInstance(@Valid @RequestBody SelectInstanceRequest request) {
+    public Result<ApiInstanceDTO> selectInstance(@Valid @RequestBody SelectInstanceRequest request) {
         // 从上下文中获取当前请求的API Key和项目ID
         String currentApiKey = ApiContext.getApiKey();
         String currentProjectId = ApiContext.getProjectId();
@@ -43,10 +44,11 @@ public class GatewayController {
         logger.info("接收到选择API实例请求: {}, API Key: {}, 项目ID: {}", 
                 request, currentApiKey, currentProjectId);
 
-        String businessId = selectionAppService.selectBestInstance(request,currentProjectId);
+        ApiInstanceDTO selectedInstance = selectionAppService.selectBestInstance(request, currentProjectId);
 
-        logger.info("成功选择API实例，businessId: {}", businessId);
-        return Result.success("API实例选择成功", businessId);
+        logger.info("成功选择API实例，businessId: {}, instanceId: {}", 
+                selectedInstance.getBusinessId(), selectedInstance.getId());
+        return Result.success("API实例选择成功", selectedInstance);
     }
 
     /**

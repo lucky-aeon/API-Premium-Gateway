@@ -5,7 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.xhy.gateway.application.assembler.SelectionAssembler;
+import org.xhy.gateway.application.assembler.ApiInstanceAssembler;
+import org.xhy.gateway.application.dto.ApiInstanceDTO;
 import org.xhy.gateway.domain.apiinstance.command.InstanceSelectionCommand;
+import org.xhy.gateway.domain.apiinstance.entity.ApiInstanceEntity;
 import org.xhy.gateway.domain.apiinstance.service.ApiInstanceSelectionDomainService;
 import org.xhy.gateway.domain.metrics.command.CallResultCommand;
 import org.xhy.gateway.domain.metrics.service.MetricsCollectionDomainService;
@@ -40,17 +43,21 @@ public class SelectionAppService {
      * 选择最佳API实例
      * 只读操作，不需要事务
      */
-    public String selectBestInstance(SelectInstanceRequest request,String currentProjectId) {
+    public ApiInstanceDTO selectBestInstance(SelectInstanceRequest request, String currentProjectId) {
         logger.info("应用层开始选择API实例: {}", request);
 
         // 应用层通过Assembler将Request对象转换成领域命令对象
-        InstanceSelectionCommand command = selectionAssembler.toCommand(request,currentProjectId);
+        InstanceSelectionCommand command = selectionAssembler.toCommand(request, currentProjectId);
 
         // 调用领域服务执行选择算法
-        String businessId = selectionDomainService.selectBestInstance(command);
+        ApiInstanceEntity selectedEntity = selectionDomainService.selectBestInstance(command);
 
-        logger.info("应用层选择API实例成功: businessId={}", businessId);
-        return businessId;
+        // 转换为DTO返回
+        ApiInstanceDTO result = ApiInstanceAssembler.toDTO(selectedEntity);
+
+        logger.info("应用层选择API实例成功: businessId={}, instanceId={}", 
+                result.getBusinessId(), result.getId());
+        return result;
     }
 
     /**

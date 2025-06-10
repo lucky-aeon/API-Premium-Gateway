@@ -25,9 +25,6 @@ public class ApiInstanceDTO {
     private ApiInstanceStatus status;
     private Map<String, Object> metadata;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-
     public ApiInstanceDTO() {}
 
     public String getId() {
@@ -100,22 +97,6 @@ public class ApiInstanceDTO {
 
     public void setMetadata(Map<String, Object> metadata) {
         this.metadata = metadata;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     public String getProjectName() {

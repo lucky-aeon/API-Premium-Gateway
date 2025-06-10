@@ -139,12 +139,12 @@ public class TestDataGenerator {
         // 生成20次调用：18次成功，2次失败，成功率90%
         for (int i = 0; i < 18; i++) {
             ReportResultRequest request = createSuccessRequest(instanceId, 500 + (i * 50));
-            selectionAppService.reportCallResult(request);
+            selectionAppService.reportCallResult(request,TEST_PROJECT_NAME);
         }
         
         for (int i = 0; i < 2; i++) {
             ReportResultRequest request = createFailureRequest(instanceId, 1000L, "轻微错误", "RETRY_ERROR");
-            selectionAppService.reportCallResult(request);
+            selectionAppService.reportCallResult(request,TEST_PROJECT_NAME);
         }
         
         System.out.println("✅ 健康实例数据：20次调用，90%成功率，平均延迟~600ms");
@@ -159,12 +159,12 @@ public class TestDataGenerator {
         // 生成15次调用：3次成功，12次失败，成功率20%，触发熔断
         for (int i = 0; i < 3; i++) {
             ReportResultRequest request = createSuccessRequest(instanceId, 800L);
-            selectionAppService.reportCallResult(request);
+            selectionAppService.reportCallResult(request,TEST_PROJECT_NAME);
         }
         
         for (int i = 0; i < 12; i++) {
             ReportResultRequest request = createFailureRequest(instanceId, 5000L, "服务不可用", "SERVICE_ERROR");
-            selectionAppService.reportCallResult(request);
+            selectionAppService.reportCallResult(request,TEST_PROJECT_NAME);
         }
         
         System.out.println("✅ 高错误率实例数据：15次调用，20%成功率，应触发熔断状态");
@@ -182,7 +182,7 @@ public class TestDataGenerator {
             ReportResultRequest request = createSuccessRequestWithUsage(
                 instanceId, latency, createGptUsageMetrics(150 + i*10, 200 + i*10, 0.003 + i*0.001)
             );
-            selectionAppService.reportCallResult(request);
+            selectionAppService.reportCallResult(request,TEST_PROJECT_NAME);
         }
         
         System.out.println("✅ 高延迟实例数据：12次调用，100%成功率，平均延迟>6000ms，应触发降级状态");
@@ -193,7 +193,6 @@ public class TestDataGenerator {
      */
     private ReportResultRequest createSuccessRequest(String instanceId, long latencyMs) {
         ReportResultRequest request = new ReportResultRequest();
-        request.setProjectId("test-project"); // 简化处理
         request.setInstanceId(instanceId);
         request.setBusinessId("test-business-id");
         request.setSuccess(true);
@@ -208,7 +207,6 @@ public class TestDataGenerator {
     private ReportResultRequest createFailureRequest(String instanceId, long latencyMs, 
                                                      String errorMessage, String errorType) {
         ReportResultRequest request = new ReportResultRequest();
-        request.setProjectId("test-project");
         request.setInstanceId(instanceId);
         request.setBusinessId("test-business-id");
         request.setSuccess(false);
