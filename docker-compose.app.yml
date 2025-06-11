@@ -1,0 +1,65 @@
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: api-gateway-postgres
+    environment:
+      POSTGRES_DB: api_gateway
+      POSTGRES_USER: gateway_user
+      POSTGRES_PASSWORD: gateway_pass
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docs/sql:/docker-entrypoint-initdb.d:ro
+    networks:
+      - gateway-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gateway_user -d api_gateway"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # API Gateway 应用
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-gateway-app
+    environment:
+      # Spring 配置
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/api_gateway?useUnicode=true&characterEncoding=UTF-8&useSSL=false&stringtype=unspecified&assumeMinServerVersion=9.6&prepareThreshold=0&DateStyle=ISO
+      SPRING_DATASOURCE_USERNAME: gateway_user
+      SPRING_DATASOURCE_PASSWORD: gateway_pass
+      # JVM 配置
+      JAVA_OPTS: "-Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom"
+    ports:
+      - "8081:8081"
+    volumes:
+      - app_logs:/app/logs
+    networks:
+      - gateway-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+    driver: local
+  app_logs:
+    driver: local
+
+networks:
+  gateway-network:
+    driver: bridge

@@ -27,12 +27,8 @@ public enum LoadBalancingType {
     /**
      * 延迟优先策略
      */
-    LATENCY_FIRST("latency_first", "延迟优先"),
+    LATENCY_FIRST("latency_first", "延迟优先");
 
-    /**
-     * 会话亲和性策略 - 同一会话路由到相同实例
-     */
-    SESSION_AFFINITY("session_affinity", "会话亲和性");
 
     private final String code;
     private final String description;
