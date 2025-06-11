@@ -58,61 +58,140 @@ API-Premium Gateway 扮演着**智能决策者**与**状态收集者**的角色�
 
 -----
 
-## 🛠️ 技术栈 (初步)
+## 🛠️ 技术栈
 
-  * **后端框架：** Spring Boot 3.x
-  * **数据存储：** MySQL / PostgreSQL
-  * **缓存/分布式状态：** Redis (可选，用于集群部署时共享 API 实例状态)
-  * **HTTP 客户端：** Spring WebClient (非阻塞、高性能)
-  * **鉴权：** JWT / API Key 认证
-  * **SDK：** Java (基于 Spring `WebClient` 封装)
+  * **后端框架：** Spring Boot 3.2.0
+  * **Java 版本：** Java 17
+  * **数据存储：** PostgreSQL 15
+  * **ORM 框架：** MyBatis Plus
+  * **容器化：** Docker + Docker Compose
+  * **架构模式：** DDD (领域驱动设计)
 
 -----
 
-## 📦 如何开始 (开发/集成)
+## 🚀 快速开始
+
+### 最简启动（推荐）
+
+只需要安装 Docker，即可一键启动完整项目：
+
+```bash
+# 克隆项目
+git clone https://github.com/lucky-aeon/API-Premium-Gateway
+cd api-premium-gateway
+
+# Mac/Linux 一键启动
+./bin/start.sh
+
+# Windows 一键启动
+bin\start.bat
+
+# 等待启动完成后，访问健康检查接口
+curl http://localhost:8081/api/health
+```
+
+启动成功后，您可以：
+- 访问后台管理界面：http://localhost:8081/api
+- 查看应用日志：`./bin/logs.sh -f` (Mac/Linux) 或 `bin\logs.bat -f` (Windows)
+- 停止服务：`./bin/stop.sh` (Mac/Linux) 或 `bin\stop.bat` (Windows)
+
+-----
+
+## 📦 详细部署指南
 
 ### 1\. 克隆项目
 
 ```bash
-git clone https://github.com/your-org/api-premium-gateway.git
+git clone https://github.com/lucky-aeon/API-Premium-Gateway
 cd api-premium-gateway
 ```
 
-### 2\. 启动数据库
+### 2\. 一键启动项目
 
-本项目提供了 Docker 一键启动 PostgreSQL 数据库的解决方案：
+本项目提供了完整的 Docker 一键启动解决方案，支持 Mac/Linux 和 Windows 系统：
 
+#### Mac/Linux 系统
 ```bash
-# 一键启动数据库（推荐）
-./start-db.sh
+# 一键启动完整项目（数据库 + 应用）
+./bin/start.sh
 
-# 或者使用详细脚本
-./scripts/start-postgres.sh
+# 重置数据库并启动
+./bin/start.sh --reset-db
 
-# 停止数据库
-./stop-db.sh
+# 强制重新构建并启动
+./bin/start.sh --clean-build
+
+# 查看日志
+./bin/logs.sh -f
+
+# 停止服务
+./bin/stop.sh
 ```
 
-**数据库连接信息：**
-- 主机: `localhost:5433`
-- 数据库: `api_gateway`
-- 用户名: `gateway_user`
-- 密码: `gateway_pass`
-- JDBC URL: `jdbc:postgresql://localhost:5433/api_gateway`
+#### Windows 系统
+```cmd
+# 一键启动完整项目（数据库 + 应用）
+bin\start.bat
 
-数据库表结构会自动初始化。更多详细信息请查看：[数据库设置指南](docs/DATABASE_SETUP.md)
+# 重置数据库并启动
+bin\start.bat --reset-db
 
-### 3\. 构建与运行 Gateway
+# 强制重新构建并启动
+bin\start.bat --clean-build
 
-```bash
-# 构建项目
-./mvnw clean package
+# 查看日志
+bin\logs.bat -f
 
-# 运行项目
-java -jar target/api-premium-gateway.jar
+# 停止服务
+bin\stop.bat
 ```
 
-（具体命令可能需要根据您的实际项目结构调整）
+**启动后的服务信息：**
+- **应用地址**: http://localhost:8081/api
+- **健康检查**: http://localhost:8081/api/health
+- **数据库**: localhost:5433
+  - 数据库名: `api_gateway`
+  - 用户名: `gateway_user`
+  - 密码: `gateway_pass`
+  - JDBC URL: `jdbc:postgresql://localhost:5433/api_gateway`
+
+**系统要求：**
+- Docker 和 Docker Compose
+- 仅需要 Docker 环境即可启动，无需本地安装 Java 或 Maven
+
+**特性：**
+- 🚀 **零配置启动**：只需要 Docker 环境，一键启动完整项目
+- 🔄 **智能构建**：自动检测环境，优先使用本地构建，否则使用 Docker 内构建
+- 📊 **健康检查**：自动等待服务就绪，确保启动成功
+- 🗄️ **数据持久化**：数据库数据自动持久化，重启不丢失
+- 🛠️ **开发友好**：代码修改后重启即生效，支持快速迭代
+
+更多详细信息请查看：[启动脚本使用指南](bin/README.md)
+
+### 3\. 开发模式
+
+如果您需要在本地开发环境中运行项目（不使用 Docker 容器化应用），可以：
+
+#### 启动数据库
+```bash
+# 仅启动 PostgreSQL 数据库
+docker-compose -f docker-compose.yml up -d postgres
+```
+
+#### 本地运行应用
+```bash
+# 使用 Maven 运行
+./mvnw spring-boot:run
+
+# 或者构建后运行
+./mvnw clean package -DskipTests
+java -jar target/api-premium-gateway-*.jar
+```
+
+**开发环境配置：**
+- 应用端口：8080
+- 数据库端口：5433
+- 配置文件：`application.yml`
 
 ### 4\. 上游服务集成 (Java SDK)
 
@@ -170,6 +249,62 @@ java -jar target/api-premium-gateway.jar
         Map.of("promptTokens", 100, "completionTokens", 200) // optional metrics
     );
     ```
+
+-----
+
+## 🔧 故障排查
+
+### 常见问题
+
+#### 1. 端口被占用
+```bash
+# 检查端口占用情况
+lsof -i :8081  # 应用端口
+lsof -i :5433  # 数据库端口
+
+# 或者使用 netstat
+netstat -tulpn | grep :8081
+netstat -tulpn | grep :5433
+```
+
+#### 2. Docker 相关问题
+```bash
+# 查看容器状态
+docker-compose -f docker-compose.app.yml ps
+
+# 查看容器日志
+./bin/logs.sh api-gateway
+./bin/logs.sh postgres
+
+# 重新构建镜像
+./bin/stop.sh --cleanup
+./bin/start.sh --clean-build
+```
+
+#### 3. 数据库连接问题
+```bash
+# 重置数据库
+./bin/start.sh --reset-db
+
+# 检查数据库连接
+docker exec -it api-gateway-postgres psql -U gateway_user -d api_gateway
+```
+
+#### 4. 应用启动失败
+```bash
+# 查看详细启动日志
+./bin/logs.sh api-gateway -t 200
+
+# 检查健康状态
+curl -v http://localhost:8081/api/health
+```
+
+### 获取帮助
+
+如果遇到问题，请：
+1. 查看 [启动脚本使用指南](bin/README.md)
+2. 检查应用日志：`./bin/logs.sh api-gateway`
+3. 提交 Issue 并附上错误日志
 
 -----
 
