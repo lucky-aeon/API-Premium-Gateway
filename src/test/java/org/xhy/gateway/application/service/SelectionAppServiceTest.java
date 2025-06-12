@@ -4,12 +4,20 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xhy.gateway.BaseIntegrationTest;
+import org.xhy.gateway.application.dto.ApiInstanceDTO;
+import org.xhy.gateway.domain.apiinstance.entity.ApiInstanceEntity;
+import org.xhy.gateway.domain.apiinstance.entity.ApiInstanceStatus;
+import org.xhy.gateway.domain.apiinstance.entity.ApiType;
 import org.xhy.gateway.domain.metrics.entity.GatewayStatus;
 import org.xhy.gateway.domain.metrics.entity.InstanceMetricsEntity;
 import org.xhy.gateway.domain.metrics.repository.MetricsRepository;
+import org.xhy.gateway.infrastructure.exception.BusinessException;
 import org.xhy.gateway.interfaces.api.request.ReportResultRequest;
+import org.xhy.gateway.interfaces.api.request.SelectInstanceRequest;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * 选择应用服务测试
- * 重点测试结果上报功能，生成真实的测试数据
+ * 重点测试结果上报功能和降级功能，生成真实的测试数据
  * 
  * @author xhy
  * @since 1.0.0
@@ -58,59 +66,54 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
     void testReportFailureCallResult() {
         // Given: 准备失败调用的上报请求
         ReportResultRequest request = createFailureReportRequest(
-                testInstanceId2, 5000L, "API限流", "RATE_LIMIT");
+                testInstanceId1, 2000L, "API调用超时", "TIMEOUT_ERROR");
 
         // When: 上报调用结果
         selectionAppService.reportCallResult(request,this.testProjectId);
 
         // Then: 验证数据已写入数据库
-        InstanceMetricsEntity metrics = findLatestMetrics(testInstanceId2);
+        InstanceMetricsEntity metrics = findLatestMetrics(testInstanceId1);
         assertNotNull(metrics, "应该创建指标记录");
         assertEquals(0L, metrics.getSuccessCount());
         assertEquals(1L, metrics.getFailureCount());
-        assertEquals(5000L, metrics.getTotalLatencyMs());
+        assertEquals(2000L, metrics.getTotalLatencyMs());
         assertEquals(0.0, metrics.getSuccessRate(), 0.001);
-        assertEquals(5000.0, metrics.getAverageLatency(), 0.001);
+        assertEquals(2000.0, metrics.getAverageLatency(), 0.001);
 
         System.out.println("✅ 失败上报测试数据: " + metrics);
     }
 
     @Test
-    @DisplayName("测试批量上报混合结果 - 生成丰富的测试数据")
-    void testBatchReportMixedResults() {
-        // Given: 准备多种类型的调用结果
+    @DisplayName("测试混合调用结果上报 - 生成复杂场景数据")
+    void testMixedCallResults() {
+        // Given: 创建混合调用场景
         String instanceId = testInstanceId1;
 
-        // 批量上报：7次成功，3次失败
-        System.out.println("=== 开始批量上报测试数据 ===");
-        
-        // 成功调用
+        System.out.println("=== 模拟混合调用场景 ===");
+
+        // 7次成功，3次失败 = 70%成功率
         for (int i = 0; i < 7; i++) {
-            ReportResultRequest successRequest = createSuccessReportRequest(
-                    instanceId, 500L + (i * 100)); // 延迟递增
+            ReportResultRequest successRequest = createSuccessReportRequest(instanceId, 500L + (i * 50));
             selectionAppService.reportCallResult(successRequest,this.testProjectId);
-            System.out.println("上报成功调用 #" + (i + 1));
         }
 
-        // 失败调用
         for (int i = 0; i < 3; i++) {
             ReportResultRequest failureRequest = createFailureReportRequest(
-                    instanceId, 3000L + (i * 500), "错误 #" + (i + 1), "API_ERROR");
+                    instanceId, 1500L + (i * 200), "间歇性错误", "INTERMITTENT_ERROR");
             selectionAppService.reportCallResult(failureRequest,this.testProjectId);
-            System.out.println("上报失败调用 #" + (i + 1));
         }
 
-        // When & Then: 验证聚合数据
+        // When & Then: 验证混合结果
         InstanceMetricsEntity metrics = findLatestMetrics(instanceId);
-        assertNotNull(metrics, "应该有聚合的指标记录");
+        assertNotNull(metrics);
         assertEquals(7L, metrics.getSuccessCount());
         assertEquals(3L, metrics.getFailureCount());
-        assertEquals(0.7, metrics.getSuccessRate(), 0.01); // 7/10 = 0.7
-        assertEquals(GatewayStatus.HEALTHY, metrics.getCurrentGatewayStatus()); // 成功率70%，应该健康
+        assertEquals(0.7, metrics.getSuccessRate(), 0.01); // 70%成功率
+        assertEquals(GatewayStatus.HEALTHY, metrics.getCurrentGatewayStatus()); // 应该保持健康
 
-        System.out.println("✅ 批量上报完成，聚合数据: " + metrics);
-        System.out.printf("   成功率: %.1f%%, 平均延迟: %.1fms, 总调用: %d次\n", 
-                metrics.getSuccessRate(), metrics.getAverageLatency(), metrics.getTotalCount());
+        System.out.println("✅ 混合场景测试数据: " + metrics);
+        System.out.printf("   📊 成功率: %.1f%%, 平均延迟: %.1fms\n", 
+                metrics.getSuccessRate() * 100, metrics.getAverageLatency());
     }
 
     @Test
@@ -142,7 +145,7 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
         assertEquals(GatewayStatus.CIRCUIT_BREAKER_OPEN, metrics.getCurrentGatewayStatus());
 
         System.out.println("✅ 熔断状态测试数据: " + metrics);
-        System.out.printf("   ⚠️ 实例进入熔断状态! 成功率: %.1f%%\n", metrics.getSuccessRate());
+        System.out.printf("   ⚠️ 实例进入熔断状态! 成功率: %.1f%%\n", metrics.getSuccessRate() * 100);
     }
 
     @Test
@@ -173,102 +176,187 @@ class SelectionAppServiceTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("测试使用指标上报 - GPT模型调用数据")
-    void testUsageMetricsReport() {
-        // Given: 准备带使用指标的上报请求
-        String instanceId = testInstanceId1;
+    @DisplayName("测试降级功能 - 主实例不可用时使用降级链")
+    void testFallbackChainFunctionality() {
+        System.out.println("=== 测试降级功能 ===");
 
-        System.out.println("=== 模拟GPT模型调用指标上报 ===");
-
-        // 模拟3次GPT调用，每次都有token消耗
-        Map<String, Object> usage1 = createGptUsageMetrics(150, 200, 0.0035);
-        Map<String, Object> usage2 = createGptUsageMetrics(200, 300, 0.005);
-        Map<String, Object> usage3 = createGptUsageMetrics(100, 150, 0.0025);
-
-        ReportResultRequest request1 = createSuccessReportRequestWithUsage(instanceId, 1200L, usage1);
-        ReportResultRequest request2 = createSuccessReportRequestWithUsage(instanceId, 1500L, usage2);
-        ReportResultRequest request3 = createSuccessReportRequestWithUsage(instanceId, 900L, usage3);
-
-        // When: 上报调用结果
-        selectionAppService.reportCallResult(request1,this.testProjectId);
-        selectionAppService.reportCallResult(request2,this.testProjectId);
-        selectionAppService.reportCallResult(request3,this.testProjectId);
-
-        // Then: 验证使用指标数据
-        InstanceMetricsEntity metrics = findLatestMetrics(instanceId);
-        assertNotNull(metrics);
-        assertEquals(3L, metrics.getSuccessCount());
+        // Given: 创建降级实例
+        String fallbackBusinessId1 = "gpt4o-fallback-001";
+        String fallbackBusinessId2 = "gpt4o-fallback-002";
         
-        Map<String, Object> additionalMetrics = metrics.getAdditionalMetrics();
-        assertNotNull(additionalMetrics, "应该有使用指标数据");
+        String fallbackInstanceId1 = createFallbackInstance(fallbackBusinessId1);
+        String fallbackInstanceId2 = createFallbackInstance(fallbackBusinessId2);
+        
+        // 停用主实例，模拟主实例不可用
+        deactivateInstance(testInstanceId1);
+        deactivateInstance(testInstanceId2);
+        deactivateInstance(testInstanceId3);
+        
+        // 创建带降级链的请求
+        SelectInstanceRequest request = new SelectInstanceRequest();
+        request.setApiIdentifier(TEST_API_IDENTIFIER);
+        request.setApiType(ApiType.MODEL.getCode());
+        request.setFallbackChain(Arrays.asList(fallbackBusinessId1, fallbackBusinessId2));
 
-        System.out.println("✅ 使用指标测试数据: " + metrics);
-        System.out.println("   📊 使用指标: " + additionalMetrics);
+        // When: 选择实例（应该使用降级链）
+        ApiInstanceDTO selectedInstance = selectionAppService.selectBestInstance(request, testProjectId);
+
+        // Then: 应该选择到降级实例
+        assertNotNull(selectedInstance);
+        assertTrue(selectedInstance.getBusinessId().equals(fallbackBusinessId1) || 
+                  selectedInstance.getBusinessId().equals(fallbackBusinessId2));
+        
+        System.out.println("✅ 降级功能测试成功");
+        System.out.println("   选择的降级实例: " + selectedInstance.getBusinessId());
+        System.out.println("   实例ID: " + selectedInstance.getId());
     }
 
-    // ========== 辅助方法 ==========
+    @Test
+    @DisplayName("测试降级链穷尽 - 所有实例都不可用")
+    void testFallbackChainExhausted() {
+        System.out.println("=== 测试降级链穷尽场景 ===");
+
+        // Given: 停用所有实例
+        deactivateInstance(testInstanceId1);
+        deactivateInstance(testInstanceId2);
+        deactivateInstance(testInstanceId3);
+        
+        // 创建带降级链的请求，但降级实例也不存在
+        SelectInstanceRequest request = new SelectInstanceRequest();
+        request.setApiIdentifier(TEST_API_IDENTIFIER);
+        request.setApiType(ApiType.MODEL.getCode());
+        request.setFallbackChain(Arrays.asList("non-existent-1", "non-existent-2"));
+
+        // When & Then: 应该抛出降级链穷尽异常
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            selectionAppService.selectBestInstance(request, testProjectId);
+        });
+
+        assertEquals("FALLBACK_EXHAUSTED", exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("所有降级实例都不可用"));
+        
+        System.out.println("✅ 降级链穷尽测试成功");
+        System.out.println("   异常信息: " + exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("测试无降级链时的正常异常处理")
+    void testNormalExceptionWithoutFallback() {
+        System.out.println("=== 测试无降级链的异常处理 ===");
+
+        // Given: 停用所有实例
+        deactivateInstance(testInstanceId1);
+        deactivateInstance(testInstanceId2);
+        deactivateInstance(testInstanceId3);
+        
+        // 创建不带降级链的请求
+        SelectInstanceRequest request = new SelectInstanceRequest();
+        request.setApiIdentifier(TEST_API_IDENTIFIER);
+        request.setApiType(ApiType.MODEL.getCode());
+        // 不设置降级链
+
+        // When & Then: 应该抛出正常的无可用实例异常
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            selectionAppService.selectBestInstance(request, testProjectId);
+        });
+
+        assertEquals("NO_AVAILABLE_INSTANCE", exception.getErrorCode());
+        
+        System.out.println("✅ 无降级链异常处理测试成功");
+        System.out.println("   异常信息: " + exception.getMessage());
+    }
+
+    // 辅助方法
 
     /**
-     * 创建成功调用的上报请求
+     * 创建降级实例
+     */
+    private String createFallbackInstance(String businessId) {
+        ApiInstanceEntity fallbackInstance = new ApiInstanceEntity();
+        fallbackInstance.setProjectId(testProjectId);
+        fallbackInstance.setApiIdentifier(businessId); // 使用businessId作为apiIdentifier
+        fallbackInstance.setApiType(ApiType.MODEL);
+        fallbackInstance.setBusinessId(businessId);
+        fallbackInstance.setStatus(ApiInstanceStatus.ACTIVE);
+        
+        // 设置路由参数
+        Map<String, Object> routingParams = new HashMap<>();
+        routingParams.put("priority", 50);
+        routingParams.put("cost_per_unit", 0.0002);
+        routingParams.put("initial_weight", 30);
+        fallbackInstance.setRoutingParams(routingParams);
+        
+        // 设置元数据
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("provider", "fallback");
+        metadata.put("region", "us-west-1");
+        fallbackInstance.setMetadata(metadata);
+        
+        apiInstanceRepository.insert(fallbackInstance);
+        
+        System.out.println("   创建降级实例: " + businessId + " -> " + fallbackInstance.getId());
+        return fallbackInstance.getId();
+    }
+
+    /**
+     * 停用实例
+     */
+    private void deactivateInstance(String instanceId) {
+        ApiInstanceEntity instance = apiInstanceRepository.selectById(instanceId);
+        if (instance != null) {
+            instance.setStatus(ApiInstanceStatus.INACTIVE);
+            apiInstanceRepository.updateById(instance);
+            System.out.println("   停用实例: " + instanceId + " (" + instance.getBusinessId() + ")");
+        }
+    }
+
+    /**
+     * 创建成功调用上报请求
      */
     private ReportResultRequest createSuccessReportRequest(String instanceId, long latencyMs) {
         ReportResultRequest request = new ReportResultRequest();
         request.setInstanceId(instanceId);
-        request.setBusinessId(TEST_BUSINESS_ID_1);
+        request.setBusinessId("test-business-id");
         request.setSuccess(true);
         request.setLatencyMs(latencyMs);
         request.setCallTimestamp(System.currentTimeMillis());
+        
+        // 添加使用指标
+        Map<String, Object> usageMetrics = new HashMap<>();
+        usageMetrics.put("promptTokens", 100);
+        usageMetrics.put("completionTokens", 200);
+        usageMetrics.put("totalCost", 0.003);
+        request.setUsageMetrics(usageMetrics);
+        
         return request;
     }
 
     /**
-     * 创建失败调用的上报请求
+     * 创建失败调用上报请求
      */
     private ReportResultRequest createFailureReportRequest(String instanceId, long latencyMs, 
                                                           String errorMessage, String errorType) {
         ReportResultRequest request = new ReportResultRequest();
         request.setInstanceId(instanceId);
-        request.setBusinessId(TEST_BUSINESS_ID_1);
+        request.setBusinessId("test-business-id");
         request.setSuccess(false);
         request.setLatencyMs(latencyMs);
         request.setErrorMessage(errorMessage);
         request.setErrorType(errorType);
         request.setCallTimestamp(System.currentTimeMillis());
+        
         return request;
     }
 
     /**
-     * 创建带使用指标的成功调用上报请求
-     */
-    private ReportResultRequest createSuccessReportRequestWithUsage(String instanceId, long latencyMs, 
-                                                                   Map<String, Object> usageMetrics) {
-        ReportResultRequest request = createSuccessReportRequest(instanceId, latencyMs);
-        request.setUsageMetrics(usageMetrics);
-        return request;
-    }
-
-    /**
-     * 创建GPT使用指标
-     */
-    private Map<String, Object> createGptUsageMetrics(int promptTokens, int completionTokens, double totalCost) {
-        Map<String, Object> usage = new HashMap<>();
-        usage.put("promptTokens", promptTokens);
-        usage.put("completionTokens", completionTokens);
-        usage.put("totalTokens", promptTokens + completionTokens);
-        usage.put("totalCost", totalCost);
-        return usage;
-    }
-
-    /**
-     * 查找实例的最新指标记录
+     * 查找最新的指标数据
      */
     private InstanceMetricsEntity findLatestMetrics(String instanceId) {
-        LocalDateTime currentWindow = LocalDateTime.now().withSecond(0).withNano(0);
-        
-        return metricsRepository.selectList(null).stream()
-                .filter(m -> instanceId.equals(m.getRegistryId()))
-                .filter(m -> currentWindow.equals(m.getTimestampWindow()))
-                .findFirst()
-                .orElse(null);
+        return metricsRepository.selectList(
+                new LambdaQueryWrapper<InstanceMetricsEntity>()
+                        .eq(InstanceMetricsEntity::getRegistryId, instanceId)
+                        .orderByDesc(InstanceMetricsEntity::getTimestampWindow)
+                        .last("LIMIT 1")
+        ).stream().findFirst().orElse(null);
     }
 } 

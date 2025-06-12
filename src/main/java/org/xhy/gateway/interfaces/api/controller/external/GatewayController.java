@@ -32,7 +32,7 @@ public class GatewayController {
 
     /**
      * 选择最佳API实例
-     * 根据调度算法返回最优的API实例信息
+     * 根据调度算法返回最优的API实例信息，支持降级功能
      * 需要API Key校验
      */
     @PostMapping("/select-instance")
@@ -41,8 +41,13 @@ public class GatewayController {
         String currentApiKey = ApiContext.getApiKey();
         String currentProjectId = ApiContext.getProjectId();
         
-        logger.info("接收到选择API实例请求: {}, API Key: {}, 项目ID: {}", 
-                request, currentApiKey, currentProjectId);
+        if (request.hasFallbackChain()) {
+            logger.info("接收到选择API实例请求（含降级链）: {}, API Key: {}, 项目ID: {}, 降级链: {}", 
+                    request.getApiIdentifier(), currentApiKey, currentProjectId, request.getFallbackChain());
+        } else {
+            logger.info("接收到选择API实例请求: {}, API Key: {}, 项目ID: {}", 
+                    request, currentApiKey, currentProjectId);
+        }
 
         ApiInstanceDTO selectedInstance = selectionAppService.selectBestInstance(request, currentProjectId);
 

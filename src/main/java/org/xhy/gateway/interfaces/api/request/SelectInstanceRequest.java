@@ -1,6 +1,7 @@
 package org.xhy.gateway.interfaces.api.request;
 
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 
 /**
  * 选择API实例请求
@@ -39,6 +40,13 @@ public class SelectInstanceRequest {
      * 定义亲和性的类型，例如：SESSION、USER、BATCH、REGION等
      */
     private String affinityType;
+
+    /**
+     * 降级链，可选
+     * 当主要实例都不可用时，按顺序尝试降级到这些业务ID对应的实例
+     * 使用相同的apiType和projectId进行查找
+     */
+    private List<String> fallbackChain;
 
     public SelectInstanceRequest() {
     }
@@ -83,12 +91,27 @@ public class SelectInstanceRequest {
         this.affinityType = affinityType;
     }
 
+    public List<String> getFallbackChain() {
+        return fallbackChain;
+    }
+
+    public void setFallbackChain(List<String> fallbackChain) {
+        this.fallbackChain = fallbackChain;
+    }
+
     /**
      * 检查是否有亲和性要求
      */
     public boolean hasAffinityRequirement() {
         return affinityKey != null && !affinityKey.trim().isEmpty() 
             && affinityType != null && !affinityType.trim().isEmpty();
+    }
+
+    /**
+     * 检查是否有降级链
+     */
+    public boolean hasFallbackChain() {
+        return fallbackChain != null && !fallbackChain.isEmpty();
     }
 
     @Override
@@ -99,6 +122,7 @@ public class SelectInstanceRequest {
                 ", apiType='" + apiType + '\'' +
                 ", affinityKey='" + affinityKey + '\'' +
                 ", affinityType='" + affinityType + '\'' +
+                ", fallbackChain=" + fallbackChain +
                 '}';
     }
 } 

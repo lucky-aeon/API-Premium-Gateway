@@ -106,20 +106,32 @@ public class ApiInstanceSelectionDomainService {
 
     /**
      * 查找候选实例
+     * 支持通过apiIdentifier或businessId查找实例
      */
     private List<ApiInstanceEntity> findCandidateInstances(InstanceSelectionCommand command) {
         LambdaQueryWrapper<ApiInstanceEntity> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ApiInstanceEntity::getProjectId, command.getProjectId())
-                   .eq(ApiInstanceEntity::getApiIdentifier, command.getApiIdentifier())
                    .eq(ApiInstanceEntity::getApiType, ApiType.fromCode(command.getApiType()))
                    .eq(ApiInstanceEntity::getStatus, ApiInstanceStatus.ACTIVE);
+        
+        // 优先通过apiIdentifier查找，如果没有找到则尝试通过businessId查找
+        queryWrapper.and(wrapper -> wrapper
+                .eq(ApiInstanceEntity::getApiIdentifier, command.getApiIdentifier())
+                .or()
+                .eq(ApiInstanceEntity::getBusinessId, command.getApiIdentifier())
+        );
         
         // 如果指定了用户ID，则过滤用户
         if (command.getUserId() != null && !command.getUserId().trim().isEmpty()) {
             queryWrapper.eq(ApiInstanceEntity::getUserId, command.getUserId());
         }
 
-        return apiInstanceRepository.selectList(queryWrapper);
+        List<ApiInstanceEntity> candidates = apiInstanceRepository.selectList(queryWrapper);
+        
+        logger.debug("查找候选实例: projectId={}, apiIdentifier={}, apiType={}, 找到{}个候选实例", 
+                command.getProjectId(), command.getApiIdentifier(), command.getApiType(), candidates.size());
+        
+        return candidates;
     }
 
     /**
