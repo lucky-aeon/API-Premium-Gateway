@@ -153,26 +153,6 @@ public class ApiKeyDomainService {
         return apiKey.isUsable();
     }
 
-    /**
-     * 根据API Key获取关联的项目ID
-     * 因为是项目关联API Key，所以需要通过ProjectDomainService查找
-     */
-    public String getProjectIdByApiKey(String apiKeyValue) {
-        logger.debug("根据API Key获取项目ID: {}", apiKeyValue);
-        
-        // 先验证API Key是否存在
-        LambdaQueryWrapper<ApiKeyEntity> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ApiKeyEntity::getApiKeyValue, apiKeyValue);
-        
-        ApiKeyEntity apiKey = apiKeyRepository.selectOne(queryWrapper);
-        if (apiKey == null) {
-            logger.warn("API Key不存在: {}", apiKeyValue);
-            return null;
-        }
-        
-        // 通过ProjectDomainService根据API Key查找项目
-        return projectDomainService.getProjectIdByApiKey(apiKeyValue);
-    }
 
     /**
      * 校验API Key是否有效（用于拦截器）
@@ -224,4 +204,16 @@ public class ApiKeyDomainService {
         updateWrapper.set(ApiKeyEntity::getStatus, ApiKeyStatus.ACTIVE);
         apiKeyRepository.update(null, updateWrapper);
     }
-} 
+
+    public void createApiKey(String defaultApiKey) {
+        ApiKeyEntity apiKey = new ApiKeyEntity(defaultApiKey, "默认的", null);
+        apiKeyRepository.insert(apiKey);
+    }
+
+    public boolean existApiKey(String apiKeyValue) {
+        LambdaQueryWrapper<ApiKeyEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ApiKeyEntity::getApiKeyValue, apiKeyValue);
+        ApiKeyEntity apiKey = apiKeyRepository.selectOne(queryWrapper);
+        return apiKey != null;
+    }
+}

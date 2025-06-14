@@ -84,7 +84,7 @@ public class AuthenticationAppService {
             }
 
             // 3. 获取API Key关联的项目ID
-            String projectId = apiKeyDomainService.getProjectIdByApiKey(apiKey);
+            String projectId = projectDomainService.getProjectIdByApiKey(apiKey);
             if (!StringUtils.hasText(projectId)) {
                 logger.warn("API Key未关联任何项目: {}", apiKey);
                 return AuthenticationResult.failure("API Key未关联项目", 403);

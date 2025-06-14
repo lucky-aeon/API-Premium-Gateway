@@ -12,7 +12,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests -q
 
 # 多阶段构建：第二阶段 - 运行时镜像
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jre
 
 # 设置工作目录
 WORKDIR /app
