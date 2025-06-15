@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 
+          http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <!-- 配置镜像仓库，解决网络环境下的依赖下载问题 -->
+    <mirrors>
+        <!-- 阿里云Maven镜像 -->
+        <mirror>
+            <id>aliyun-maven</id>
+            <name>Aliyun Maven Repository</name>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <mirrorOf>central</mirrorOf>
+        </mirror>
+        
+        <!-- 华为云Maven镜像（备用） -->
+        <mirror>
+            <id>huawei-maven</id>
+            <name>Huawei Maven Repository</name>
+            <url>https://repo.huaweicloud.com/repository/maven/</url>
+            <mirrorOf>central</mirrorOf>
+        </mirror>
+    </mirrors>
+
+    <!-- 配置仓库 -->
+    <profiles>
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <repositories>
+                <repository>
+                    <id>aliyun-maven</id>
+                    <name>Aliyun Maven Repository</name>
+                    <url>https://maven.aliyun.com/repository/public</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>aliyun-maven</id>
+                    <name>Aliyun Maven Repository</name>
+                    <url>https://maven.aliyun.com/repository/public</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+    </profiles>
+</settings> 

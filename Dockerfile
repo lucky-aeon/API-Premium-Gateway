@@ -4,12 +4,19 @@ FROM maven:3.9.6-eclipse-temurin-17 AS builder
 # 设置工作目录
 WORKDIR /build
 
+# 复制Maven配置文件
+COPY settings.xml /root/.m2/settings.xml
+
 # 复制pom.xml和源代码
 COPY pom.xml .
 COPY src ./src
 
 # 下载依赖并构建应用（跳过测试）
-RUN mvn clean package -DskipTests -q
+# 添加重试机制和详细日志，使用自定义settings.xml
+RUN mvn clean package -DskipTests -B -s /root/.m2/settings.xml \
+    --fail-at-end --batch-mode \
+    -Dmaven.wagon.http.retryHandler.count=3 \
+    -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
 
 # 多阶段构建：第二阶段 - 运行时镜像
 FROM eclipse-temurin:17-jre
