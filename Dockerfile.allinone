@@ -1,0 +1,219 @@
+# API Premium Gateway 一体化镜像 - 包含应用和PostgreSQL数据库
+FROM ubuntu:22.04
+
+# 设置时区和语言环境
+ENV TZ=Asia/Shanghai
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jre-headless \
+    postgresql-14 \
+    postgresql-client-14 \
+    postgresql-contrib-14 \
+    sudo \
+    curl \
+    wget \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# 配置PostgreSQL
+USER postgres
+RUN /etc/init.d/postgresql start && \
+    psql --command "CREATE USER gateway_user WITH SUPERUSER PASSWORD 'gateway_pass';" && \
+    createdb -O gateway_user api_gateway && \
+    /etc/init.d/postgresql stop
+
+# 配置PostgreSQL监听地址
+RUN echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/14/main/pg_hba.conf
+RUN echo "listen_addresses='*'" >> /etc/postgresql/14/main/postgresql.conf
+RUN echo "port = 5432" >> /etc/postgresql/14/main/postgresql.conf
+
+# 切换回root用户
+USER root
+
+# 创建应用目录
+WORKDIR /app
+
+# 第一阶段：构建应用
+FROM maven:3.9.6-eclipse-temurin-17 AS builder
+WORKDIR /build
+COPY settings.xml /root/.m2/settings.xml
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests -B -s /root/.m2/settings.xml \
+    --fail-at-end --batch-mode \
+    -Dmaven.wagon.http.retryHandler.count=3 \
+    -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+
+# 继续一体化镜像构建
+FROM ubuntu:22.04
+
+# 设置时区和语言环境
+ENV TZ=Asia/Shanghai
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jre-headless \
+    postgresql-14 \
+    postgresql-client-14 \
+    postgresql-contrib-14 \
+    sudo \
+    curl \
+    wget \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/log/supervisor \
+    && mkdir -p /app/logs
+
+# 配置PostgreSQL用户和数据库
+USER postgres
+RUN /etc/init.d/postgresql start && \
+    psql --command "CREATE USER gateway_user WITH SUPERUSER PASSWORD 'gateway_pass';" && \
+    createdb -O gateway_user api_gateway && \
+    /etc/init.d/postgresql stop
+
+# 配置PostgreSQL
+RUN echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/14/main/pg_hba.conf && \
+    echo "listen_addresses='*'" >> /etc/postgresql/14/main/postgresql.conf && \
+    echo "port = 5432" >> /etc/postgresql/14/main/postgresql.conf
+
+# 切换回root用户
+USER root
+
+# 复制应用JAR文件
+COPY --from=builder /build/target/api-premium-gateway-*.jar /app/app.jar
+
+# 复制数据库初始化脚本
+COPY docs/sql/sql.sql /app/init.sql
+
+# 创建Supervisor配置文件
+RUN cat > /etc/supervisor/conf.d/services.conf << 'EOF'
+[supervisord]
+nodaemon=true
+user=root
+logfile=/var/log/supervisor/supervisord.log
+pidfile=/var/run/supervisord.pid
+
+[program:postgresql]
+command=/usr/lib/postgresql/14/bin/postgres -D /var/lib/postgresql/14/main -c config_file=/etc/postgresql/14/main/postgresql.conf
+user=postgres
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/postgresql.log
+environment=PGDATA="/var/lib/postgresql/14/main"
+
+[program:init-db]
+command=/app/init-db.sh
+user=postgres
+autostart=true
+autorestart=false
+startsecs=0
+startretries=3
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/init-db.log
+priority=200
+
+[program:api-gateway]
+command=java -Xms512m -Xmx1024m -Djava.security.egd=file:/dev/./urandom -Dspring.profiles.active=allinone -jar /app/app.jar
+directory=/app
+user=root
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/api-gateway.log
+priority=300
+EOF
+
+# 创建数据库初始化脚本
+RUN cat > /app/init-db.sh << 'EOF'
+#!/bin/bash
+set -e
+
+# 等待PostgreSQL启动
+echo "等待PostgreSQL启动..."
+until pg_isready -h localhost -p 5432 -U postgres; do
+  echo "PostgreSQL is unavailable - sleeping"
+  sleep 1
+done
+
+echo "PostgreSQL已启动，开始初始化数据库..."
+
+# 检查数据库是否已经初始化
+RESULT=$(psql -h localhost -U gateway_user -d api_gateway -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null || echo "0")
+
+if [ "$RESULT" -eq "0" ] || [ -z "$RESULT" ]; then
+    echo "数据库为空，执行初始化脚本..."
+    psql -h localhost -U gateway_user -d api_gateway -f /app/init.sql
+    echo "数据库初始化完成"
+else
+    echo "数据库已存在数据，跳过初始化"
+fi
+
+echo "数据库初始化脚本执行完成"
+EOF
+
+# 创建应用配置文件
+RUN cat > /app/application-allinone.yml << 'EOF'
+server:
+  port: 8081
+
+spring:
+  application:
+    name: api-premium-gateway
+  profiles:
+    active: allinone
+  datasource:
+    url: jdbc:postgresql://localhost:5432/api_gateway?useUnicode=true&characterEncoding=UTF-8&useSSL=false&stringtype=unspecified&assumeMinServerVersion=9.6&prepareThreshold=0&DateStyle=ISO
+    username: gateway_user
+    password: gateway_pass
+    driver-class-name: org.postgresql.Driver
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    org.xhy.gateway: INFO
+    org.springframework.web: INFO
+  file:
+    name: /app/logs/api-premium-gateway.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+EOF
+
+# 设置执行权限
+RUN chmod +x /app/init-db.sh
+
+# 暴露端口
+EXPOSE 8081 5432
+
+# 设置健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8081/api/health || exit 1
+
+# 启动命令
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
