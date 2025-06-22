@@ -1,0 +1,83 @@
+# 优化构建 - 参考AgentX的简洁做法
+FROM eclipse-temurin:17-jre-jammy
+
+# 设置工作目录
+WORKDIR /app
+
+# 设置环境变量
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 一次性安装所有依赖，减少层数
+RUN apt-get update && apt-get install -y \
+    postgresql-15 \
+    postgresql-client-15 \
+    postgresql-contrib-15 \
+    curl \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/log/supervisor /app/logs
+
+# 复制已构建的JAR文件（避免容器内Maven构建）
+COPY target/api-premium-gateway-*.jar /app/app.jar
+
+# 复制数据库初始化脚本
+COPY docs/sql/sql.sql /app/init.sql
+
+# 创建启动脚本（参考AgentX的启动方式）
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+echo "Starting API Premium Gateway services..."\n\
+\n\
+# 初始化PostgreSQL（如果需要）\n\
+if [ ! -d "/var/lib/postgresql/15/main" ]; then\n\
+    echo "Initializing PostgreSQL..."\n\
+    sudo -u postgres /usr/lib/postgresql/15/bin/initdb -D /var/lib/postgresql/15/main\n\
+fi\n\
+\n\
+# 启动PostgreSQL（后台）\n\
+echo "Starting PostgreSQL..."\n\
+sudo -u postgres /usr/lib/postgresql/15/bin/postgres -D /var/lib/postgresql/15/main -c config_file=/etc/postgresql/15/main/postgresql.conf &\n\
+\n\
+# 等待PostgreSQL启动\n\
+echo "Waiting for PostgreSQL to start..."\n\
+until sudo -u postgres pg_isready -h localhost -p 5432; do\n\
+    echo "PostgreSQL is unavailable - sleeping"\n\
+    sleep 1\n\
+done\n\
+\n\
+# 创建数据库和用户\n\
+echo "Setting up database..."\n\
+sudo -u postgres psql -c "CREATE USER gateway_user WITH PASSWORD '\''gateway_pass'\'';" || true\n\
+sudo -u postgres psql -c "CREATE DATABASE api_gateway OWNER gateway_user;" || true\n\
+\n\
+# 初始化数据库表\n\
+echo "Initializing database tables..."\n\
+sudo -u postgres psql -U gateway_user -d api_gateway -f /app/init.sql || true\n\
+\n\
+echo "Database setup complete"\n\
+\n\
+# 启动Java应用（前台）\n\
+echo "Starting API Gateway application..."\n\
+exec java -Xms512m -Xmx1024m \\\n\
+    -Dspring.profiles.active=allinone \\\n\
+    -Dspring.datasource.url=jdbc:postgresql://localhost:5432/api_gateway \\\n\
+    -Dspring.datasource.username=gateway_user \\\n\
+    -Dspring.datasource.password=gateway_pass \\\n\
+    -jar /app/app.jar\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# 配置PostgreSQL
+RUN echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/15/main/pg_hba.conf && \
+    echo "listen_addresses = '*'" >> /etc/postgresql/15/main/postgresql.conf && \
+    echo "port = 5432" >> /etc/postgresql/15/main/postgresql.conf
+
+# 暴露端口
+EXPOSE 8081
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8081/api/health || exit 1
+
+# 使用启动脚本
+CMD ["/app/start.sh"]

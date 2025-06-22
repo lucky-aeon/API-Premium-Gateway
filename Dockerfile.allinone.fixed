@@ -1,0 +1,180 @@
+# 多阶段构建 - 后端（完全模仿 AgentX）
+FROM maven:3.9-eclipse-temurin-17 AS backend-builder
+WORKDIR /app
+COPY pom.xml ./
+COPY src ./src
+# 添加 settings.xml 如果存在
+COPY settings.xml /root/.m2/settings.xml 2>/dev/null || true
+RUN mvn clean package -DskipTests
+
+# 最终运行镜像 - 基于 PostgreSQL 镜像（模仿 AgentX）
+FROM postgres:15-alpine
+
+# 安装 OpenJDK 和必要工具
+RUN apk add --no-cache \
+    openjdk17-jre \
+    curl \
+    bash \
+    supervisor
+
+# 设置 PostgreSQL 环境
+ENV POSTGRES_DB=api_gateway
+ENV POSTGRES_USER=gateway_user
+ENV POSTGRES_PASSWORD=gateway_pass
+ENV PGDATA=/var/lib/postgresql/data
+
+# 创建应用目录
+WORKDIR /app
+
+# 复制构建好的 JAR 文件
+COPY --from=backend-builder /app/target/*.jar /app/app.jar
+
+# 复制数据库初始化脚本
+COPY docs/sql/sql.sql /docker-entrypoint-initdb.d/01-init.sql
+
+# 创建应用配置文件
+RUN cat > /app/application-allinone.yml << 'EOF'
+server:
+  port: 8081
+
+spring:
+  application:
+    name: api-premium-gateway
+  profiles:
+    active: allinone
+  datasource:
+    url: jdbc:postgresql://localhost:5432/api_gateway
+    username: gateway_user
+    password: gateway_pass
+    driver-class-name: org.postgresql.Driver
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    org.xhy.gateway: INFO
+  file:
+    name: /app/logs/api-premium-gateway.log
+EOF
+
+# 创建 supervisor 配置（参考 AgentX）
+RUN mkdir -p /etc/supervisor/conf.d && \
+    cat > /etc/supervisor/conf.d/gateway.conf << 'EOF'
+[supervisord]
+nodaemon=true
+user=root
+logfile=/var/log/supervisor/supervisord.log
+pidfile=/var/run/supervisord.pid
+
+[program:postgres]
+command=/usr/local/bin/docker-entrypoint.sh postgres
+user=postgres
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/postgres.log
+stderr_logfile=/var/log/postgres.log
+environment=POSTGRES_DB="api_gateway",POSTGRES_USER="gateway_user",POSTGRES_PASSWORD="gateway_pass"
+
+[program:gateway]
+command=java -jar /app/app.jar --spring.config.additional-location=file:/app/application-allinone.yml
+directory=/app
+user=root
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/gateway.log
+stderr_logfile=/var/log/gateway.log
+EOF
+
+# 创建启动脚本（参考 AgentX 的用户友好输出）
+RUN cat > /app/start-gateway.sh << 'EOF'
+#!/bin/bash
+
+echo "🚀 Starting API Premium Gateway All-in-One"
+echo "=========================================="
+
+# 初始化 PostgreSQL 数据目录
+if [ ! -d "$PGDATA" ]; then
+    echo "🔧 Initializing PostgreSQL database..."
+    mkdir -p "$PGDATA"
+    chown postgres:postgres "$PGDATA"
+    su - postgres -c "initdb -D $PGDATA"
+fi
+
+# 创建日志目录
+mkdir -p /var/log/supervisor /app/logs
+
+echo "🎯 Starting all services with supervisor..."
+
+# 启动 supervisor
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/gateway.conf
+EOF
+
+RUN chmod +x /app/start-gateway.sh
+
+# 创建必要目录和设置权限
+RUN mkdir -p /var/lib/postgresql/data /var/log /app/logs && \
+    chown -R postgres:postgres /var/lib/postgresql && \
+    chmod 755 /var/log
+
+# 暴露端口
+EXPOSE 8081 5432
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8081/api/health || exit 1
+
+# 创建最终启动脚本，包含用户友好的输出
+RUN cat > /docker-entrypoint.sh << 'EOF'
+#!/bin/bash
+
+echo "🎉 Welcome to API Premium Gateway All-in-One!"
+echo "=============================================="
+echo ""
+echo "🔧 Initializing system..."
+
+# 启动应用
+/app/start-gateway.sh &
+APP_PID=$!
+
+# 等待服务启动
+echo "⏳ Waiting for services to start (this may take 1-2 minutes)..."
+sleep 30
+
+# 检查服务状态
+for i in {1..40}; do
+    if curl -s http://localhost:8081/api/health >/dev/null 2>&1; then
+        echo ""
+        echo "✅ All services are ready!"
+        echo ""
+        echo "🌐 Access URLs:"
+        echo "   API Gateway:  http://localhost:8081/api"
+        echo "   Health Check: http://localhost:8081/api/health"
+        echo "   Database:     postgresql://gateway_user:gateway_pass@localhost:5432/api_gateway"
+        echo ""
+        echo "📚 Documentation: https://github.com/lucky-aeon/API-Premium-Gateway"
+        echo "🆘 Support: https://github.com/lucky-aeon/API-Premium-Gateway/issues"
+        echo ""
+        break
+    fi
+    
+    if [ $((i % 10)) -eq 0 ]; then
+        echo "   Still starting... ($i/40)"
+    fi
+    sleep 3
+done
+
+# 保持容器运行
+wait $APP_PID
+EOF
+
+RUN chmod +x /docker-entrypoint.sh
+
+# 设置入口点
+ENTRYPOINT ["/docker-entrypoint.sh"]
