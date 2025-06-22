@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write  # 需要写权限来创建 Release
       packages: write
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
