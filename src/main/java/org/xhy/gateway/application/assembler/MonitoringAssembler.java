@@ -19,7 +19,7 @@ public class MonitoringAssembler {
     /**
      * 将API实例实体和指标实体转换为监控DTO
      */
-    public ApiInstanceMonitoringDTO toMonitoringDTO(ApiInstanceEntity instance, 
+    public static ApiInstanceMonitoringDTO toMonitoringDTO(ApiInstanceEntity instance, 
                                                    ApiInstanceMetricsEntity metrics, 
                                                    String projectName) {
         ApiInstanceMonitoringDTO dto = new ApiInstanceMonitoringDTO();

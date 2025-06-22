@@ -42,16 +42,14 @@ public class MonitoringAppService {
     private final ApiInstanceRepository apiInstanceRepository;
     private final ApiInstanceMetricsRepository apiInstanceMetricsRepository;
     private final ProjectRepository projectRepository;
-    private final MonitoringAssembler monitoringAssembler;
+
 
     public MonitoringAppService(ApiInstanceRepository apiInstanceRepository,
                                ApiInstanceMetricsRepository apiInstanceMetricsRepository,
-                               ProjectRepository projectRepository,
-                               MonitoringAssembler monitoringAssembler) {
+                               ProjectRepository projectRepository) {
         this.apiInstanceRepository = apiInstanceRepository;
         this.apiInstanceMetricsRepository = apiInstanceMetricsRepository;
         this.projectRepository = projectRepository;
-        this.monitoringAssembler = monitoringAssembler;
     }
 
     /**
@@ -177,7 +175,7 @@ public class MonitoringAppService {
                 .map(instance -> {
                     ApiInstanceMetricsEntity metrics = latestMetrics.get(instance.getId());
                     String projectName = projectNames.get(instance.getProjectId());
-                    return monitoringAssembler.toMonitoringDTO(instance, metrics, projectName);
+                    return MonitoringAssembler.toMonitoringDTO(instance, metrics, projectName);
                 })
                 .collect(Collectors.toList());
 

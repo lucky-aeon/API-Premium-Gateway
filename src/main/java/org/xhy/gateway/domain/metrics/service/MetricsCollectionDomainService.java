@@ -10,7 +10,9 @@ import org.xhy.gateway.domain.metrics.entity.InstanceMetricsEntity;
 import org.xhy.gateway.domain.metrics.repository.MetricsRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.xhy.gateway.domain.apiinstance.service.SelectionConstants.*;
 
@@ -157,5 +159,37 @@ public class MetricsCollectionDomainService {
 
         // 正常健康状态
         metrics.updateGatewayStatus(GatewayStatus.HEALTHY);
+    }
+
+    /**
+     * 获取实例指标数据
+     * 供选择算法使用
+     */  
+    public Map<String, InstanceMetricsEntity> getInstanceMetrics(List<String> instanceIds) {
+        if (instanceIds == null || instanceIds.isEmpty()) {
+            return Map.of();
+        }
+
+        // 获取最近的指标数据（最近5分钟内）
+        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(SHORT_TERM_WINDOW_MINUTES);
+        
+        LambdaQueryWrapper<InstanceMetricsEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(InstanceMetricsEntity::getRegistryId, instanceIds)
+                   .ge(InstanceMetricsEntity::getTimestampWindow, cutoffTime)
+                   .orderByDesc(InstanceMetricsEntity::getTimestampWindow);
+
+        List<InstanceMetricsEntity> metricsList = metricsRepository.selectList(queryWrapper);
+        
+        logger.debug("查询到 {} 条指标数据，实例ID数量: {}", metricsList.size(), instanceIds.size());
+        
+        // 聚合同一实例的指标数据（取最新的）
+        return metricsList.stream()
+                .collect(Collectors.toMap(
+                        InstanceMetricsEntity::getRegistryId,
+                        metrics -> metrics,
+                        (existing, replacement) -> 
+                                existing.getTimestampWindow().isAfter(replacement.getTimestampWindow()) 
+                                        ? existing : replacement
+                ));
     }
 } 

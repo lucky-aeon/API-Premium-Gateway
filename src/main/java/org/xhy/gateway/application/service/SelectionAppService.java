@@ -11,14 +11,21 @@ import org.xhy.gateway.domain.apiinstance.command.InstanceSelectionCommand;
 import org.xhy.gateway.domain.apiinstance.entity.ApiInstanceEntity;
 import org.xhy.gateway.domain.apiinstance.service.ApiInstanceSelectionDomainService;
 import org.xhy.gateway.domain.metrics.command.CallResultCommand;
+import org.xhy.gateway.domain.metrics.entity.InstanceMetricsEntity;
 import org.xhy.gateway.domain.metrics.service.MetricsCollectionDomainService;
+import org.xhy.gateway.domain.project.service.ProjectDomainService;
 import org.xhy.gateway.infrastructure.exception.BusinessException;
 import org.xhy.gateway.interfaces.api.request.ReportResultRequest;
 import org.xhy.gateway.interfaces.api.request.SelectInstanceRequest;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 /**
  * 选择算法应用服务
  * 负责API实例选择和结果上报的编排
+ * 编排多个领域服务的协作，符合DDD架构规范
  * 
  * @author xhy
  * @since 1.0.0
@@ -28,20 +35,22 @@ public class SelectionAppService {
 
     private static final Logger logger = LoggerFactory.getLogger(SelectionAppService.class);
 
-    private final ApiInstanceSelectionDomainService selectionDomainService;
+    private final ApiInstanceSelectionDomainService apiInstanceSelectionDomainService;
     private final MetricsCollectionDomainService metricsCollectionDomainService;
-    private final SelectionAssembler selectionAssembler;
+    private final ProjectDomainService projectDomainService;
 
-    public SelectionAppService(ApiInstanceSelectionDomainService selectionDomainService, 
+
+    public SelectionAppService(ApiInstanceSelectionDomainService apiInstanceSelectionDomainService, 
                               MetricsCollectionDomainService metricsCollectionDomainService,
-                              SelectionAssembler selectionAssembler) {
-        this.selectionDomainService = selectionDomainService;
+                              ProjectDomainService projectDomainService) {
+        this.apiInstanceSelectionDomainService = apiInstanceSelectionDomainService;
         this.metricsCollectionDomainService = metricsCollectionDomainService;
-        this.selectionAssembler = selectionAssembler;
+        this.projectDomainService = projectDomainService;
     }
 
     /**
      * 选择最佳API实例（支持降级）
+     * 应用层编排多个领域服务的协作
      * 只读操作，不需要事务
      */
     public ApiInstanceDTO selectBestInstance(SelectInstanceRequest request, String currentProjectId) {
@@ -66,15 +75,40 @@ public class SelectionAppService {
 
     /**
      * 内部实例选择方法
+     * 应用层编排领域服务的核心方法
      */
     private ApiInstanceDTO selectInstanceInternal(SelectInstanceRequest request, String currentProjectId) {
-        // 应用层通过Assembler将Request对象转换成领域命令对象
-        InstanceSelectionCommand command = selectionAssembler.toCommand(request, currentProjectId);
+        // 1. 应用层通过Assembler将Request对象转换成领域命令对象
+        InstanceSelectionCommand command = SelectionAssembler.toCommand(request, currentProjectId);
 
-        // 调用领域服务执行选择算法
-        ApiInstanceEntity selectedEntity = selectionDomainService.selectBestInstance(command);
+        // 2. 验证项目存在（调用project领域服务）
+        projectDomainService.validateProjectExists(command.getProjectId());
 
-        // 转换为DTO返回
+        // 3. 查找候选实例（调用apiinstance领域服务）
+        List<ApiInstanceEntity> candidates = apiInstanceSelectionDomainService.findCandidateInstances(command);
+        if (candidates.isEmpty()) {
+            throw new BusinessException("NO_AVAILABLE_INSTANCE", 
+                    String.format("没有可用的API实例: projectId=%s, apiIdentifier=%s, apiType=%s", 
+                            command.getProjectId(), command.getApiIdentifier(), command.getApiType()));
+        }
+
+        // 4. 获取实例指标（调用metrics领域服务）
+        List<String> instanceIds = candidates.stream()
+                .map(ApiInstanceEntity::getId)
+                .collect(Collectors.toList());
+        Map<String, InstanceMetricsEntity> metricsMap = metricsCollectionDomainService.getInstanceMetrics(instanceIds);
+
+        // 5. 过滤掉被熔断的实例（调用apiinstance领域服务）
+        List<ApiInstanceEntity> healthyInstances = apiInstanceSelectionDomainService.filterHealthyInstances(candidates, metricsMap);
+        if (healthyInstances.isEmpty()) {
+            throw new BusinessException("NO_HEALTHY_INSTANCE", "所有API实例都不可用或被熔断");
+        }
+
+        // 6. 使用策略选择最佳实例（调用apiinstance领域服务）
+        ApiInstanceEntity selectedEntity = apiInstanceSelectionDomainService.selectInstanceWithStrategy(
+                healthyInstances, metricsMap, command);
+
+        // 7. 转换为DTO返回
         ApiInstanceDTO result = ApiInstanceAssembler.toDTO(selectedEntity);
 
         logger.info("应用层选择API实例成功: businessId={}, instanceId={}", 
@@ -96,7 +130,9 @@ public class SelectionAppService {
                 SelectInstanceRequest fallbackRequest = createFallbackRequest(request, fallbackBusinessId);
                 
                 logger.info("尝试降级到第{}个实例: businessId={}", i + 1, fallbackBusinessId);
-                
+
+                // todo xhy 可能有问题，大家自行研究一下。我盲猜这段代码是有问题的
+
                 ApiInstanceDTO result = selectInstanceInternal(fallbackRequest, currentProjectId);
                 
                 logger.info("降级成功，选择到实例: businessId={}, instanceId={}", 
@@ -145,12 +181,12 @@ public class SelectionAppService {
      * 需要事务支持，因为涉及指标数据更新
      */
     @Transactional(rollbackFor = Exception.class)
-    public void reportCallResult(ReportResultRequest request,String projectId) {
+    public void reportCallResult(ReportResultRequest request, String projectId) {
         logger.info("应用层开始处理调用结果上报: instanceId={}, success={}", 
                 request.getInstanceId(), request.getSuccess());
 
         // 应用层通过Assembler将Request对象转换成领域命令对象
-        CallResultCommand command = selectionAssembler.toCommand(request,projectId);
+        CallResultCommand command = SelectionAssembler.toCommand(request, projectId);
 
         // 调用领域服务处理结果上报
         metricsCollectionDomainService.recordCallResult(command);

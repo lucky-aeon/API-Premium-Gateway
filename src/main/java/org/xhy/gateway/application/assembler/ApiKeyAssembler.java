@@ -18,7 +18,7 @@ public class ApiKeyAssembler {
     /**
      * Entity 转换为 DTO
      */
-    public ApiKeyDTO toDTO(ApiKeyEntity entity) {
+    public static ApiKeyDTO toDTO(ApiKeyEntity entity) {
         if (entity == null) {
             return null;
         }
@@ -33,13 +33,13 @@ public class ApiKeyAssembler {
     /**
      * Entity 列表转换为 DTO 列表
      */
-    public List<ApiKeyDTO> toDTOList(List<ApiKeyEntity> entities) {
+    public static List<ApiKeyDTO> toDTOList(List<ApiKeyEntity> entities) {
         if (entities == null) {
             return null;
         }
 
         return entities.stream()
-                .map(this::toDTO)
+                .map(ApiKeyAssembler::toDTO)
                 .collect(Collectors.toList());
     }
 } 

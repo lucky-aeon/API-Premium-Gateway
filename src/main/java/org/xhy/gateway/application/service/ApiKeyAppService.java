@@ -23,11 +23,9 @@ public class ApiKeyAppService {
     private static final Logger logger = LoggerFactory.getLogger(ApiKeyAppService.class);
 
     private final ApiKeyDomainService apiKeyDomainService;
-    private final ApiKeyAssembler apiKeyAssembler;
 
-    public ApiKeyAppService(ApiKeyDomainService apiKeyDomainService, ApiKeyAssembler apiKeyAssembler) {
+    public ApiKeyAppService(ApiKeyDomainService apiKeyDomainService) {
         this.apiKeyDomainService = apiKeyDomainService;
-        this.apiKeyAssembler = apiKeyAssembler;
     }
 
     /**
@@ -38,7 +36,7 @@ public class ApiKeyAppService {
         logger.info("应用服务：生成 API Key，描述: {}", description);
         
         ApiKeyEntity entity = apiKeyDomainService.generateApiKey(description, expiresAt);
-        return apiKeyAssembler.toDTO(entity);
+        return ApiKeyAssembler.toDTO(entity);
     }
 
     /**
@@ -47,7 +45,7 @@ public class ApiKeyAppService {
     @Transactional(readOnly = true)
     public ApiKeyDTO getById(String id) {
         ApiKeyEntity entity = apiKeyDomainService.getById(id);
-        return apiKeyAssembler.toDTO(entity);
+        return ApiKeyAssembler.toDTO(entity);
     }
 
     /**
@@ -56,7 +54,7 @@ public class ApiKeyAppService {
     @Transactional(readOnly = true)
     public List<ApiKeyDTO> findAll() {
         List<ApiKeyEntity> entities = apiKeyDomainService.findAll();
-        return apiKeyAssembler.toDTOList(entities);
+        return ApiKeyAssembler.toDTOList(entities);
     }
 
     /**

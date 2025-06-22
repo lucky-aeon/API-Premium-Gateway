@@ -23,7 +23,7 @@ public class ProjectAssembler {
     /**
      * Request 转换为 Entity (用于创建)
      */
-    public ProjectEntity toEntity(ProjectCreateRequest request) {
+    public static ProjectEntity toEntity(ProjectCreateRequest request) {
         if (request == null) {
             return null;
         }
@@ -38,7 +38,7 @@ public class ProjectAssembler {
     /**
      * Entity 转换为 DTO
      */
-    public ProjectDTO toDTO(ProjectEntity entity) {
+    public static ProjectDTO toDTO(ProjectEntity entity) {
         if (entity == null) {
             return null;
         }
@@ -51,20 +51,20 @@ public class ProjectAssembler {
     /**
      * Entity 列表转换为 DTO 列表
      */
-    public List<ProjectDTO> toDTOList(List<ProjectEntity> entities) {
+    public static List<ProjectDTO> toDTOList(List<ProjectEntity> entities) {
         if (entities == null) {
             return null;
         }
 
         return entities.stream()
-                .map(this::toDTO)
+                .map(ProjectAssembler::toDTO)
                 .collect(Collectors.toList());
     }
 
     /**
      * Entity 转换为简化 DTO
      */
-    public ProjectSimpleDTO toSimpleDTO(ProjectEntity entity) {
+    public static ProjectSimpleDTO toSimpleDTO(ProjectEntity entity) {
         if (entity == null) {
             return null;
         }
@@ -75,13 +75,13 @@ public class ProjectAssembler {
     /**
      * Entity 列表转换为简化 DTO 列表
      */
-    public List<ProjectSimpleDTO> toSimpleDTOList(List<ProjectEntity> entities) {
+    public static List<ProjectSimpleDTO> toSimpleDTOList(List<ProjectEntity> entities) {
         if (entities == null) {
             return null;
         }
 
         return entities.stream()
-                .map(this::toSimpleDTO)
+                .map(ProjectAssembler::toSimpleDTO)
                 .collect(Collectors.toList());
     }
 } 

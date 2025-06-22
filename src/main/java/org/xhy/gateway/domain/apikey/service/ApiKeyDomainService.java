@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.xhy.gateway.domain.apikey.entity.ApiKeyEntity;
 import org.xhy.gateway.domain.apikey.entity.ApiKeyStatus;
 import org.xhy.gateway.domain.apikey.repository.ApiKeyRepository;
-import org.xhy.gateway.domain.project.service.ProjectDomainService;
 import org.xhy.gateway.infrastructure.exception.ApiKeyException;
 import org.xhy.gateway.infrastructure.exception.EntityNotFoundException;
 
@@ -29,7 +28,6 @@ public class ApiKeyDomainService {
     private static final Logger logger = LoggerFactory.getLogger(ApiKeyDomainService.class);
 
     private final ApiKeyRepository apiKeyRepository;
-    private final ProjectDomainService projectDomainService;
     private final SecureRandom secureRandom;
 
     // API Key 配置
@@ -37,9 +35,8 @@ public class ApiKeyDomainService {
     private static final int API_KEY_LENGTH = 32;
     private static final String API_KEY_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-    public ApiKeyDomainService(ApiKeyRepository apiKeyRepository, ProjectDomainService projectDomainService) {
+    public ApiKeyDomainService(ApiKeyRepository apiKeyRepository) {
         this.apiKeyRepository = apiKeyRepository;
-        this.projectDomainService = projectDomainService;
         this.secureRandom = new SecureRandom();
     }
 

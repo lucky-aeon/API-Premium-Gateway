@@ -20,7 +20,7 @@ public class SelectionAssembler {
     /**
      * 将SelectInstanceRequest转换为InstanceSelectionCommand
      */
-    public InstanceSelectionCommand toCommand(SelectInstanceRequest request, String projectId) {
+    public static InstanceSelectionCommand toCommand(SelectInstanceRequest request, String projectId) {
         if (request == null) {
             return null;
         }
@@ -47,7 +47,7 @@ public class SelectionAssembler {
     /**
      * 将ReportResultRequest转换为CallResultCommand
      */
-    public CallResultCommand toCommand(ReportResultRequest request, String projectId) {
+    public static CallResultCommand toCommand(ReportResultRequest request, String projectId) {
         if (request == null) {
             return null;
         }

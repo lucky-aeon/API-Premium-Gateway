@@ -27,13 +27,11 @@ public class ProjectAppService {
     private static final Logger logger = LoggerFactory.getLogger(ProjectAppService.class);
 
     private final ProjectDomainService projectDomainService;
-    private final ProjectAssembler projectAssembler;
     private final ApiKeyDomainService apiKeyDomainService;
 
 
-    public ProjectAppService(ProjectDomainService projectDomainService, ProjectAssembler projectAssembler, ApiKeyDomainService apiKeyDomainService) {
+    public ProjectAppService(ProjectDomainService projectDomainService, ApiKeyDomainService apiKeyDomainService) {
         this.projectDomainService = projectDomainService;
-        this.projectAssembler = projectAssembler;
         this.apiKeyDomainService = apiKeyDomainService;
     }
 
@@ -55,7 +53,7 @@ public class ProjectAppService {
         apiKeyDomainService.useApiKey(request.getApiKey());
 
         // 转换为DTO返回
-        ProjectDTO result = projectAssembler.toDTO(projectEntity);
+        ProjectDTO result = ProjectAssembler.toDTO(projectEntity);
         
         logger.info("应用层项目创建成功，项目ID: {}", result.getId());
         return result;
@@ -72,7 +70,7 @@ public class ProjectAppService {
         ProjectEntity projectEntity = projectDomainService.getProjectById(id);
 
         // 转换为DTO返回
-        return projectAssembler.toDTO(projectEntity);
+        return ProjectAssembler.toDTO(projectEntity);
     }
 
     /**
@@ -86,7 +84,7 @@ public class ProjectAppService {
         List<ProjectEntity> projectEntities = projectDomainService.getProjectList();
 
         // 转换为DTO列表返回
-        return projectAssembler.toDTOList(projectEntities);
+        return ProjectAssembler.toDTOList(projectEntities);
     }
 
     /**
@@ -100,7 +98,7 @@ public class ProjectAppService {
         List<ProjectEntity> projectEntities = projectDomainService.getAllProjects();
 
         // 转换为DTO列表返回
-        return projectAssembler.toDTOList(projectEntities);
+        return ProjectAssembler.toDTOList(projectEntities);
     }
 
     /**
@@ -114,7 +112,7 @@ public class ProjectAppService {
         List<ProjectEntity> projectEntities = projectDomainService.searchProjectsByName(projectName);
 
         // 转换为DTO列表返回
-        return projectAssembler.toDTOList(projectEntities);
+        return ProjectAssembler.toDTOList(projectEntities);
     }
 
     /**
@@ -128,7 +126,7 @@ public class ProjectAppService {
         List<ProjectEntity> projectEntities = projectDomainService.getProjectsByStatus(status);
 
         // 转换为DTO列表返回
-        return projectAssembler.toDTOList(projectEntities);
+        return ProjectAssembler.toDTOList(projectEntities);
     }
 
     /**
@@ -167,6 +165,6 @@ public class ProjectAppService {
         List<ProjectEntity> projectEntities = projectDomainService.getAllProjects();
 
         // 转换为简化DTO列表返回
-        return projectAssembler.toSimpleDTOList(projectEntities);
+        return ProjectAssembler.toSimpleDTOList(projectEntities);
     }
 } 

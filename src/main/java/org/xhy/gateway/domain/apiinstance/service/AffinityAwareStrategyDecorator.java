@@ -45,6 +45,7 @@ public class AffinityAwareStrategyDecorator {
             LoadBalancingStrategy strategy,
             AffinityContext affinityContext) {
 
+        affinityContext = null;
         // 1. 如果没有亲和性要求，直接使用负载均衡策略
         if (affinityContext == null || !affinityContext.isValid()) {
             logger.debug("无亲和性要求，直接使用负载均衡策略: {}", strategy.getClass().getSimpleName());
