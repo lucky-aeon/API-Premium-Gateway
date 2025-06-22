@@ -65,7 +65,7 @@ COMMENT ON COLUMN api_instance_registry.updated_at IS '记录最后更新时间�
 CREATE TABLE api_instance_metrics (
     id VARCHAR(36) PRIMARY KEY, -- 指标记录的唯一标识符 (UUID 字符串，由应用层生成)
     registry_id VARCHAR(36) NOT NULL, -- 关联的 API 业务实例 ID，外键关联 api_instance_registry 表
-    timestamp_window TIMESTAMP NOT NULL DEFAULT date_trunc('minute', NOW()), -- 指标统计的时间窗口起始点
+    timestamp_window TIMESTAMP NOT NULL DEFAULT date_trunc('minute', NOW()), -- 指标统计的时间窗口起始点 1分钟内的请求监控
     success_count BIGINT NOT NULL DEFAULT 0, -- 该时间窗口内成功的 API 调用次数
     failure_count BIGINT NOT NULL DEFAULT 0, -- 该时间窗口内失败的 API 调用次数
     total_latency_ms BIGINT NOT NULL DEFAULT 0, -- 该时间窗口内所有 API 调用的总延迟（毫秒）
