@@ -3,8 +3,8 @@ FROM maven:3.9-eclipse-temurin-17 AS backend-builder
 WORKDIR /app
 COPY pom.xml ./
 COPY src ./src
-# 添加 settings.xml 如果存在
-COPY settings.xml /root/.m2/settings.xml 2>/dev/null || true
+# 复制 settings.xml（如果存在）
+COPY settings.xml /root/.m2/settings.xml
 RUN mvn clean package -DskipTests
 
 # 最终运行镜像 - 基于 PostgreSQL 镜像（模仿 AgentX）
