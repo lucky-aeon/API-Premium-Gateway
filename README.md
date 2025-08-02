@@ -1,6 +1,45 @@
 
 # API-Premium Gateway
 
+[![Build and Push Docker Image](https://github.com/lucky-aeon/API-Premium-Gateway/actions/workflows/docker-build.yml/badge.svg)](https://github.com/lucky-aeon/API-Premium-Gateway/actions/workflows/docker-build.yml)
+
+## 🚀 快速开始
+
+### 一键启动（推荐）
+```bash
+# 克隆项目
+git clone https://github.com/lucky-aeon/API-Premium-Gateway.git
+cd API-Premium-Gateway
+
+# 一键启动
+./start.sh
+```
+
+### 使用Docker镜像
+```bash
+# 拉取最新镜像
+docker pull ghcr.io/lucky-aeon/api-premium-gateway:latest
+
+# 运行容器
+docker run -d \
+  --name api-gateway \
+  -p 8081:8081 \
+  ghcr.io/lucky-aeon/api-premium-gateway:latest
+```
+
+### 服务访问
+- **API网关**: http://localhost:8081
+- **健康检查**: http://localhost:8081/api/health
+- **数据库**: localhost:5433 (用户名: gateway_user, 密码: gateway_pass)
+
+### 管理命令
+```bash
+./start.sh          # 启动服务
+./stop.sh           # 停止服务
+./logs.sh -f        # 查看日志
+./reset.sh          # 重置数据库
+```
+
 -----
 
 ## 项目的由来
