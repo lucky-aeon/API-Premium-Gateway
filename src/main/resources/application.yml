@@ -13,7 +13,7 @@ spring:
   # 数据库配置 - 连接到 Docker PostgreSQL
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5433/api_gateway?useUnicode=true&characterEncoding=UTF-8&useSSL=false&stringtype=unspecified&assumeMinServerVersion=9.6&prepareThreshold=0&DateStyle=ISO
+    url: jdbc:postgresql://localhost:5432/api_gateway?useUnicode=true&characterEncoding=UTF-8&useSSL=false&stringtype=unspecified&assumeMinServerVersion=9.6&prepareThreshold=0&DateStyle=ISO
     username: gateway_user
     password: gateway_pass
     type: com.alibaba.druid.pool.DruidDataSource
