@@ -1,5 +1,4 @@
-
-# API-Premium Gateway
+# API Premium Gateway
 
 [![Build and Push Docker Image](https://github.com/lucky-aeon/API-Premium-Gateway/actions/workflows/docker-build.yml/badge.svg)](https://github.com/lucky-aeon/API-Premium-Gateway/actions/workflows/docker-build.yml)
 
@@ -7,24 +6,23 @@
 
 ### 一键启动（推荐）
 ```bash
+docker run -d \
+  --name api-premium-gateway \
+  -p 8081:8081 \
+  -v gateway_data:/var/lib/postgresql/data \
+  -v gateway_logs:/app/logs \
+  ghcr.io/lucky-aeon/api-premium-gateway:latest
+````
+
+
+### 开发模式
+```bash
 # 克隆项目
 git clone https://github.com/lucky-aeon/API-Premium-Gateway.git
 cd API-Premium-Gateway
 
-# 一键启动
-./start.sh
-```
-
-### 使用Docker镜像
-```bash
-# 拉取最新镜像
-docker pull ghcr.io/lucky-aeon/api-premium-gateway:latest
-
-# 运行容器
-docker run -d \
-  --name api-gateway \
-  -p 8081:8081 \
-  ghcr.io/lucky-aeon/api-premium-gateway:latest
+# 启动开发环境
+docker compose up -d --build
 ```
 
 ### 服务访问
@@ -32,12 +30,24 @@ docker run -d \
 - **健康检查**: http://localhost:8081/api/health
 - **数据库**: localhost:5433 (用户名: gateway_user, 密码: gateway_pass)
 
-### 管理命令
+### 常用命令
 ```bash
-./start.sh          # 启动服务
-./stop.sh           # 停止服务
-./logs.sh -f        # 查看日志
-./reset.sh          # 重置数据库
+# 查看服务状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+
+# 重启服务
+docker compose restart
+
+# 重置数据库（会删除所有数据）
+docker compose down
+docker volume rm api-premium-gateway_postgres_data
+docker compose up -d --build
 ```
 
 -----
@@ -92,7 +102,6 @@ API-Premium Gateway 扮演着**智能决策者**与**状态收集者**的角色�
 
 ## 📐 架构概览
 
-
 ![mermaid-diagram-2025-06-02-170627.png](docs/images/mermaid-diagram-2025-06-02-170627.png)
 
 -----
@@ -108,18 +117,18 @@ API-Premium Gateway 扮演着**智能决策者**与**状态收集者**的角色�
 
 -----
 
-## 🚀 快速开始
+## 📦 部署方式
 
-### 🌟 Docker 一体化镜像（超级推荐！）
+### 方式1：Docker 镜像（推荐）
 
 **最简单的部署方式 - 一条命令启动完整服务（应用+数据库）**
 
 ```bash
-# 直接拉取并运行一体化镜像
+# 拉取并运行最新镜像
 docker run -d \
   --name api-premium-gateway \
   -p 8081:8081 \
-  -v gateway_data:/var/lib/postgresql/14/main \
+  -v gateway_data:/var/lib/postgresql/data \
   -v gateway_logs:/app/logs \
   ghcr.io/lucky-aeon/api-premium-gateway:latest
 
@@ -139,140 +148,26 @@ curl http://localhost:8081/api/health
 - **健康检查**：http://localhost:8081/api/health
 - **管理接口**：http://localhost:8081/api/admin/
 
-**🛠️ 镜像管理：**
-```bash
-# 查看日志
-docker logs api-premium-gateway
-
-# 停止服务
-docker stop api-premium-gateway
-
-# 重启服务
-docker restart api-premium-gateway
-
-# 清理（会删除数据）
-docker stop api-premium-gateway
-docker rm api-premium-gateway
-docker volume rm gateway_data gateway_logs
-```
-
-### 🔧 开发模式启动
+### 方式2：Docker Compose（开发推荐）
 
 如果您需要进行开发或自定义配置：
 
 ```bash
 # 克隆项目
 git clone https://github.com/lucky-aeon/API-Premium-Gateway
-cd api-premium-gateway
+cd API-Premium-Gateway
 
-# Mac/Linux 一键启动
-./bin/start.sh
+# 启动服务
+docker compose up -d --build
 
-# Windows 一键启动
-bin\start.bat
-
-# 等待启动完成后，访问健康检查接口
-curl http://localhost:8081/api/health
-```
-
-启动成功后，您可以：
-- 访问后台管理界面：http://localhost:8081/api
-- 查看应用日志：`./bin/logs.sh -f` (Mac/Linux) 或 `bin\logs.bat -f` (Windows)
-- 停止服务：`./bin/stop.sh` (Mac/Linux) 或 `bin\stop.bat` (Windows)
-
------
-
-## 🐳 部署方式选择
-
-### 方式对比
-
-| 部署方式 | 适用场景 | 优势 | 启动时间 |
-|---------|---------|------|---------|
-| **Docker 一体化镜像** | 快速体验、生产部署 | 零配置、一键启动、包含数据库 | ~2分钟 |
-| **Docker Compose** | 开发调试、自定义配置 | 可定制、服务分离、易于调试 | ~3分钟 |
-| **本地开发** | 二次开发、源码调试 | 完全控制、实时调试 | ~1分钟 |
-
-### 💎 推荐部署方式
-
-**🏆 生产环境推荐：Docker 一体化镜像**
-- 零配置，开箱即用
-- 应用和数据库打包在一起，避免配置复杂性
-- 支持数据持久化，重启不丢失数据
-
-**⚡ 快速体验：**
-```bash
-docker run -d --name api-gateway-demo -p 8081:8081 \
-  ghcr.io/lucky-aeon/api-premium-gateway:latest
-```
-
-### 📥 获取最新镜像
-
-**从 GitHub Container Registry 拉取：**
-```bash
-# 拉取最新版本
-docker pull ghcr.io/lucky-aeon/api-premium-gateway:latest
-
-# 拉取指定版本（如 v1.0.0）
-docker pull ghcr.io/lucky-aeon/api-premium-gateway:v1.0.0
-
-# 查看镜像信息
-docker images | grep api-premium-gateway
-```
-
-**🏷️ 镜像标签说明：**
-- `latest`：最新稳定版本
-- `v1.0.0`：具体版本号
-- 支持 `linux/amd64` 和 `linux/arm64` 架构
-
------
-
-## 📦 详细部署指南
-
-### 1\. 克隆项目
-
-```bash
-git clone https://github.com/lucky-aeon/API-Premium-Gateway
-cd api-premium-gateway
-```
-
-### 2\. 一键启动项目
-
-本项目提供了完整的 Docker 一键启动解决方案，支持 Mac/Linux 和 Windows 系统：
-
-#### Mac/Linux 系统
-```bash
-# 一键启动完整项目（数据库 + 应用）
-./bin/start.sh
-
-# 重置数据库并启动
-./bin/start.sh --reset-db
-
-# 强制重新构建并启动
-./bin/start.sh --clean-build
+# 查看服务状态
+docker compose ps
 
 # 查看日志
-./bin/logs.sh -f
+docker compose logs -f
 
 # 停止服务
-./bin/stop.sh
-```
-
-#### Windows 系统
-```cmd
-# 一键启动完整项目（数据库 + 应用）
-bin\start.bat
-
-# 重置数据库并启动
-bin\start.bat --reset-db
-
-# 强制重新构建并启动
-bin\start.bat --clean-build
-
-# 查看日志
-bin\logs.bat -f
-
-# 停止服务
-bin\stop.bat
+docker compose down
 ```
 
 **启动后的服务信息：**
@@ -284,36 +179,19 @@ bin\stop.bat
   - 密码: `gateway_pass`
   - JDBC URL: `jdbc:postgresql://localhost:5433/api_gateway`
 
-**系统要求：**
-- Docker 和 Docker Compose
-- 仅需要 Docker 环境即可启动，无需本地安装 Java 或 Maven
+### 方式3：本地开发
 
-**特性：**
-- 🚀 **零配置启动**：只需要 Docker 环境，一键启动完整项目
-- 🔄 **智能构建**：自动检测环境，优先使用本地构建，否则使用 Docker 内构建
-- 📊 **健康检查**：自动等待服务就绪，确保启动成功
-- 🗄️ **数据持久化**：数据库数据自动持久化，重启不丢失
-- 🛠️ **开发友好**：代码修改后重启即生效，支持快速迭代
+如果您需要在本地开发环境中运行项目：
 
-更多详细信息请查看：[启动脚本使用指南](bin/README.md)
-
-### 3\. 开发模式
-
-如果您需要在本地开发环境中运行项目（不使用 Docker 容器化应用），可以：
-
-#### 启动数据库
 ```bash
-# 仅启动 PostgreSQL 数据库
-docker-compose -f docker-compose.yml up -d postgres
-```
+# 启动数据库
+docker compose up -d postgres
 
-#### 本地运行应用
-```bash
-# 使用 Maven 运行
-./mvnw spring-boot:run
+# 本地运行应用
+mvn spring-boot:run
 
 # 或者构建后运行
-./mvnw clean package -DskipTests
+mvn clean package -DskipTests
 java -jar target/api-premium-gateway-*.jar
 ```
 
@@ -322,62 +200,83 @@ java -jar target/api-premium-gateway-*.jar
 - 数据库端口：5433
 - 配置文件：`application.yml`
 
-### 4\. 上游服务集成 (Java SDK)
+-----
 
-1.  **添加 SDK 依赖：**
-    （一旦 SDK 发布到 Maven 中央仓库或您的私有仓库，您可以在 `pom.xml` 中添加依赖。）
-    ```xml
-    <dependency>
-        <groupId>com.your-org</groupId>
-        <artifactId>api-premium-gateway-sdk</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-    </dependency>
-    ```
-2.  **配置 SDK：**
-    在您的 Spring Boot 应用中配置 Gateway 的基础 URL 和 API Key。
-3.  **注册 API 实例：**
-    在应用启动时（例如，使用 `ApplicationRunner` 或 `@PostConstruct`），通过 SDK 调用 Gateway 的注册接口。
-    ```java
-    // 示例：注册一个模型API实例
-    gatewaySdkClient.registerApi(
-        "my-project-id",
-        "user-id-optional",
-        "gpt4o-model",
-        "model",
-        "my-gpt4o-business-id-001",
-        "https://api.openai.com/v1/chat/completions",
-        Map.of("provider", "OpenAI", "version", "gpt-4o"),
-        Map.of("priority", 100, "costPerToken", 0.000015)
-    );
-    ```
-4.  **选择并调用 API：**
-    在业务逻辑中，通过 SDK 请求 Gateway 选择最佳 API 实例，然后自行调用。
-    ```java
-    // 1. 请求 Gateway 选择最佳 API
-    SelectedApiInstance selectedApi = gatewaySdkClient.selectApi(
-        "my-project-id",
-        "user-id-optional",
-        "gpt4o-model",
-        "model"
-    );
+## 🔧 管理命令
 
-    // 2. 根据 Gateway 返回信息，执行实际调用
-    // ... 使用 selectedApi.getActualEndpoint() 和 selectedApi.getProviderInfo()
-    // ... 调用 LangChain4j 或其他 HTTP 客户端库
+### Docker 镜像管理
+```bash
+# 拉取最新版本
+docker pull ghcr.io/lucky-aeon/api-premium-gateway:latest
 
-    // 3. 上报调用结果
-    gatewaySdkClient.reportApiResult(
-        "my-project-id",
-        "user-id-optional",
-        "gpt4o-model",
-        selectedApi.getBusinessId(),
-        true, // success
-        150L, // latencyMs
-        null, // errorMessage
-        null, // errorType
-        Map.of("promptTokens", 100, "completionTokens", 200) // optional metrics
-    );
-    ```
+# 拉取指定版本
+docker pull ghcr.io/lucky-aeon/api-premium-gateway:v1.0.0
+
+# 查看本地镜像版本
+docker images | grep api-premium-gateway
+
+# 启动容器
+docker run -d \
+  --name api-premium-gateway \
+  -p 8081:8081 \
+  -v gateway_data:/var/lib/postgresql/data \
+  -v gateway_logs:/app/logs \
+  ghcr.io/lucky-aeon/api-premium-gateway:latest
+
+# 查看容器日志
+docker logs api-premium-gateway
+
+# 停止容器
+docker stop api-premium-gateway
+
+# 重启容器
+docker restart api-premium-gateway
+
+# 删除容器和数据（危险操作）
+docker stop api-premium-gateway
+docker rm api-premium-gateway
+docker volume rm gateway_data gateway_logs
+```
+
+### Docker Compose 管理
+```bash
+# 查看服务状态
+docker compose ps
+
+# 查看所有服务日志
+docker compose logs -f
+
+# 查看特定服务日志
+docker compose logs -f api-gateway
+docker compose logs -f postgres
+
+# 重启特定服务
+docker compose restart api-gateway
+
+# 重启所有服务
+docker compose restart
+
+# 停止所有服务
+docker compose down
+
+# 强制重新构建
+docker compose build --no-cache
+docker compose up -d
+```
+
+### 数据库管理
+```bash
+# 连接数据库
+docker exec -it api-premium-gateway-postgres psql -U gateway_user -d api_gateway
+
+# 备份数据库
+docker exec api-premium-gateway-postgres pg_dump -U gateway_user api_gateway > backup.sql
+
+# 重置数据库（会删除所有数据）
+docker compose down
+docker volume rm api-premium-gateway_postgres_data
+docker compose up -d --build
+```
 
 -----
 
@@ -396,44 +295,101 @@ netstat -tulpn | grep :8081
 netstat -tulpn | grep :5433
 ```
 
-#### 2. Docker 相关问题
+#### 2. 容器启动失败
 ```bash
 # 查看容器状态
-docker-compose -f docker-compose.app.yml ps
+docker compose ps
 
-# 查看容器日志
-./bin/logs.sh api-gateway
-./bin/logs.sh postgres
+# 查看详细启动日志
+docker compose logs api-gateway
+docker compose logs postgres
 
 # 重新构建镜像
-./bin/stop.sh --cleanup
-./bin/start.sh --clean-build
+docker compose down
+docker compose build --no-cache
+docker compose up -d
 ```
 
 #### 3. 数据库连接问题
 ```bash
 # 重置数据库
-./bin/start.sh --reset-db
+docker compose down
+docker volume rm api-premium-gateway_postgres_data
+docker compose up -d --build
 
 # 检查数据库连接
-docker exec -it api-gateway-postgres psql -U gateway_user -d api_gateway
+docker exec -it api-premium-gateway-postgres psql -U gateway_user -d api_gateway
 ```
 
-#### 4. 应用启动失败
+#### 4. 应用健康检查失败
 ```bash
-# 查看详细启动日志
-./bin/logs.sh api-gateway -t 200
+# 检查应用日志
+docker compose logs api-gateway
 
 # 检查健康状态
 curl -v http://localhost:8081/api/health
+
+# 检查服务端口
+docker compose ps
 ```
 
-### 获取帮助
+-----
 
-如果遇到问题，请：
-1. 查看 [启动脚本使用指南](bin/README.md)
-2. 检查应用日志：`./bin/logs.sh api-gateway`
-3. 提交 Issue 并附上错误日志
+## 🎯 上游服务集成 (Java SDK)
+
+1.  **添加 SDK 依赖：**
+    ```xml
+    <dependency>
+        <groupId>com.your-org</groupId>
+        <artifactId>api-premium-gateway-sdk</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+    ```
+
+2.  **配置 SDK：**
+    在您的 Spring Boot 应用中配置 Gateway 的基础 URL 和 API Key。
+
+3.  **注册 API 实例：**
+    ```java
+    // 示例：注册一个模型API实例
+    gatewaySdkClient.registerApi(
+        "my-project-id",
+        "user-id-optional",
+        "gpt4o-model",
+        "model",
+        "my-gpt4o-business-id-001",
+        "https://api.openai.com/v1/chat/completions",
+        Map.of("provider", "OpenAI", "version", "gpt-4o"),
+        Map.of("priority", 100, "costPerToken", 0.000015)
+    );
+    ```
+
+4.  **选择并调用 API：**
+    ```java
+    // 1. 请求 Gateway 选择最佳 API
+    SelectedApiInstance selectedApi = gatewaySdkClient.selectApi(
+        "my-project-id",
+        "user-id-optional",
+        "gpt4o-model",
+        "model"
+    );
+
+    // 2. 根据 Gateway 返回信息，执行实际调用
+    // ... 使用 selectedApi.getActualEndpoint() 和 selectedApi.getProviderInfo()
+
+    // 3. 上报调用结果
+    gatewaySdkClient.reportApiResult(
+        "my-project-id",
+        "user-id-optional",
+        "gpt4o-model",
+        selectedApi.getBusinessId(),
+        true, // success
+        150L, // latencyMs
+        null, // errorMessage
+        null, // errorType
+        Map.of("promptTokens", 100, "completionTokens", 200)
+    );
+    ```
 
 -----
 
@@ -445,6 +401,4 @@ curl -v http://localhost:8081/api/health
 
 ## 📄 许可证
 
-本项目采用 [MIT 许可证](https://www.google.com/search?q=LICENSE) 发布。
-
------
+本项目采用 [MIT 许可证](LICENSE) 发布。

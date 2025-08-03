@@ -4,7 +4,9 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(mkdir:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(ls:*)",
+      "Bash(docker compose:*)"
     ],
     "deny": []
   }
