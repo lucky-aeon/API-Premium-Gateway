@@ -11,7 +11,7 @@ docker run -d \
   -p 8081:8081 \
   -v gateway_data:/var/lib/postgresql/data \
   -v gateway_logs:/app/logs \
-  ghcr.io/lucky-aeon/api-premium-gateway:latest
+  ghcr.nju.edu.cn/lucky-aeon/api-premium-gateway:latest
 ````
 
 
